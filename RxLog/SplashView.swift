@@ -8,7 +8,42 @@
 import SwiftUI
 
 struct SplashView: View {
-    @State private var appear = false
+    
+    var onFinished: () -> Void
+    
+    private enum Phase {
+        case launching
+        case visible
+        case zooming
+    }
+    
+    @State private var phase: Phase = .launching
+    
+    private var logoScale: CGFloat {
+        switch phase {
+        case .launching:
+            0.2
+        case .visible:
+            1.0
+        case .zooming:
+            10.0
+        }
+    }
+    
+    private var logoOpacity: Double {
+        switch phase {
+        case .launching:
+            0
+        case .visible:
+            1
+        case .zooming:
+            0
+        }
+    }
+    
+    private var washOpacity: Double {
+        phase == .zooming ? 1 : 0
+    }
     
     var body: some View {
         ZStack {
@@ -29,18 +64,31 @@ struct SplashView: View {
                 .foregroundStyle(.thickMaterial)
                 .padding(30)
                 // ----- 3. Entrance animation -----
-                .scaleEffect(appear ? 1.0 : 0.6)
-                .opacity(appear ? 1.0 : 0.0)
+                .scaleEffect(logoScale)
+                .opacity(logoOpacity)
+            
+            Color(.systemBackground)
+                .ignoresSafeArea()
+                .opacity(washOpacity)
+                .allowsHitTesting(false)
         }
-        .onAppear {
-            // Start entrance the moment the splash is shown
-            withAnimation(.smooth(duration: 0.7)) {
-                appear = true
-            }
+        .task {
+            // 1. ENTRANCE - fade + scale up
+            withAnimation(.bouncy(duration: 0.8)) { phase = .visible }
+            
+            // 2. HOLD
+            try? await Task.sleep(for: .seconds(1.0))
+            
+            // 3. ZOOM + WASH
+            withAnimation(.bouncy(duration: 0.7)) { phase = .zooming }
+            
+            // 4. HANDOFF
+            try? await Task.sleep(for: .seconds(0.5))
+            onFinished()
         }
     }
 }
 
 #Preview {
-    SplashView()
+    SplashView(onFinished: {})
 }

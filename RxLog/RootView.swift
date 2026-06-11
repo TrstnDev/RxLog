@@ -17,7 +17,7 @@ struct RootView: View {
                 ContentView()
                     .transition(.opacity)
             } else {
-                SplashView()
+                SplashView(onFinished: {})
                     .transition(.opacity)
             }
         }
