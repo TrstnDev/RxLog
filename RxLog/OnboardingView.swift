@@ -25,14 +25,14 @@ struct OnboardingView: View {
     // Static content
     private let pages: [OnboardingPage] = [
         OnboardingPage(
-            symbol: "bolt.fill",
-            title: "Log in seconds",
-            description: "Capture notes, observations, and handovers fast - built for the pace of a busy public ward."
-        ),
-        OnboardingPage(
-            symbol: "list.clipboard.fill",
+            symbol: "heart.text.clipboard.fill",
             title: "Histories at hand",
             description: "Keep patient histories and running notes organised and instantly searchable when it matters."
+        ),
+        OnboardingPage(
+            symbol: "blood.pressure.cuff.badge.gauge.with.needle.fill",
+            title: "Log in seconds",
+            description: "Capture notes, observations, and handovers fast - built for the pace of a busy public ward."
         ),
         OnboardingPage(
             symbol: "lock.shield.fill",
