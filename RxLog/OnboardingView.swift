@@ -15,24 +15,12 @@ struct OnboardingPage: Identifiable {
     let description: String
 }
 
-// MARK: - Scroll offset preference key
-private struct ScrollOffsetKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
-}
-
 // MARK: - The onboarding flow
 struct OnboardingView: View {
 
     var onFinished: () -> Void
 
     @State private var selection = 0
-    @State private var scrollOffset: CGFloat = 0
-    @State private var pageWidth: CGFloat = 0
-
-    private var scrollPositionBinding: Binding<Int?> {
-        Binding(get: { selection as Int? }, set: { selection = $0 ?? 0 })
-    }
 
     // Static content
     private let pages: [OnboardingPage] = [
@@ -53,11 +41,7 @@ struct OnboardingView: View {
         )
     ]
 
-    private var ctaProgress: CGFloat {
-        guard pageWidth > 0 else { return 0 }
-        let threshold = CGFloat(pages.count - 2) * pageWidth
-        return max(0, min(1, (scrollOffset - threshold) / pageWidth))
-    }
+    private var isLastPage: Bool { selection == pages.count - 1 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -65,7 +49,7 @@ struct OnboardingView: View {
             // ----- Skip button -----
             HStack {
                 Spacer()
-                Button { onFinished() } label: {
+                Button() { onFinished() } label: {
                     HStack(spacing: 0) {
                         Text("Skip")
                             .font(.subheadline)
@@ -76,63 +60,50 @@ struct OnboardingView: View {
                             .fontWeight(.semibold)
                     }
                 }
-                .foregroundStyle(.black.opacity(0.8))
-                .buttonStyle(.glass)
-                .padding(.trailing, 30)
-                .padding(.top, 8)
+                    .foregroundStyle(.black.opacity(0.8))
+                    .buttonStyle(.glass)
+                    .padding(.trailing, 30)
+                    .padding(.top, 8)
             }
 
             // ----- Swipeable panes -----
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
-                        PaneView(page: page, isCurrentPage: index == selection)
-                            .containerRelativeFrame(.horizontal)
-                            .id(index)
-                    }
+            TabView(selection: $selection) {
+                ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
+                    PaneView(page: page)
+                        .tag(index)
                 }
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: ScrollOffsetKey.self,
-                            value: -geo.frame(in: .named("pager")).minX
-                        )
-                    }
-                )
             }
-            .coordinateSpace(name: "pager")
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: scrollPositionBinding)
-            .onPreferenceChange(ScrollOffsetKey.self) { scrollOffset = $0 }
-            .onGeometryChange(for: CGFloat.self, of: \.size.width) { pageWidth = $0 }
+            .tabViewStyle(.page(indexDisplayMode: .never))
 
             // ----- Custom page indicator -----
             HStack(spacing: 8) {
-                ForEach(pages.indices, id: \.self) { idx in
+                ForEach(pages.indices, id: \.self) { i in
                     Capsule()
-                        .fill(idx == selection ? .black : .black.opacity(0.3))
-                        .frame(width: idx == selection ? 20 : 8, height: 8)
+                        .fill(i == selection ? .black : .black.opacity(0.3))
+                        .frame(width: i == selection ? 20 : 8, height: 8)
                 }
             }
             .animation(.bouncy, value: selection)
             .padding(.top, 8)
             .padding(.bottom, 15)
 
-            // ----- Glass CTA — always in layout, animated by ctaProgress -----
-            Button { onFinished() } label: {
-                Text("Continue to RxLog")
-                    .font(.headline)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
+            // ----- Glass CTA, only on the final pane -----
+            Group {
+                if isLastPage {
+                    Button { onFinished() } label: {
+                        Text("Continue to RxLog")
+                            .font(.headline)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(.accent)
+                    .controlSize(.large)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
-            .buttonStyle(.glassProminent)
-            .tint(.accent)
-            .controlSize(.large)
-            .opacity(ctaProgress)
-            .scaleEffect(0.8 + 0.2 * ctaProgress)
-            .offset(y: (1 - ctaProgress) * 30)
-            .allowsHitTesting(ctaProgress > 0.5)
             .frame(height: 80)
+            .animation(.bouncy(duration: 0.75), value: isLastPage)
         }
     }
 }
@@ -140,10 +111,6 @@ struct OnboardingView: View {
 // MARK: - Single pane's visual
 private struct PaneView: View {
     let page: OnboardingPage
-    let isCurrentPage: Bool
-
-    @State private var imageScale: CGFloat = 0.5
-    @State private var imageOpacity: Double = 0
 
     var body: some View {
         VStack(spacing: 25) {
@@ -161,27 +128,6 @@ private struct PaneView: View {
                         endPoint: .bottom
                     ))
                 .padding(40)
-                .scaleEffect(imageScale)
-                .opacity(imageOpacity)
-                .onChange(of: isCurrentPage) { _, isNow in
-                    if isNow {
-                        withAnimation(.bouncy) {
-                            imageScale = 1.0
-                            imageOpacity = 1.0
-                        }
-                    } else {
-                        imageScale = 0.5
-                        imageOpacity = 0.0
-                    }
-                }
-                .onAppear {
-                    if isCurrentPage {
-                        withAnimation(.bouncy) {
-                            imageScale = 1.0
-                            imageOpacity = 1.0
-                        }
-                    }
-                }
 
             VStack(spacing: 12) {
                 Text(page.title)
