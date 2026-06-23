@@ -20,7 +20,7 @@ struct OnboardingView: View {
 
     var onFinished: () -> Void
 
-    @State private var selection = 0
+    @State private var pageProgress: CGFloat = 0
 
     // Static content
     private let pages: [OnboardingPage] = [
@@ -41,7 +41,15 @@ struct OnboardingView: View {
         )
     ]
 
-    private var isLastPage: Bool { selection == pages.count - 1 }
+    private var currentPage: Int {
+        min(max(Int(pageProgress.rounded()), 0), pages.count - 1)
+    }
+    
+    private var ctaProgress: CGFloat {
+        guard pages.count >= 2 else { return 0 }
+        let raw = pageProgress - CGFloat(pages.count - 2)
+        return min(max(raw, 0), 1)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,43 +75,52 @@ struct OnboardingView: View {
             }
 
             // ----- Swipeable panes -----
-            TabView(selection: $selection) {
-                ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
-                    PaneView(page: page)
-                        .tag(index)
+            ScrollView(.horizontal) {
+                HStack(spacing: 0) {
+                    ForEach(pages) { page in
+                        PaneView(page: page)
+                            .containerRelativeFrame(.horizontal)
+                    }
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .scrollTargetBehavior(.paging)
+            .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                let totalWidth = geo.contentSize.width
+                guard totalWidth > 0 else { return 0 }
+                let paneWidth = totalWidth / CGFloat(pages.count)
+                return geo.contentOffset.x / paneWidth
+            } action: { _, newValue in
+                pageProgress = newValue
+            }
 
             // ----- Custom page indicator -----
             HStack(spacing: 8) {
                 ForEach(pages.indices, id: \.self) { i in
                     Capsule()
-                        .fill(i == selection ? .black : .black.opacity(0.3))
-                        .frame(width: i == selection ? 20 : 8, height: 8)
+                        .fill(i == currentPage ? .black : .black.opacity(0.3))
+                        .frame(width: i == currentPage ? 20 : 8, height: 8)
                 }
             }
-            .animation(.bouncy, value: selection)
+            .animation(.bouncy, value: currentPage)
             .padding(.top, 8)
             .padding(.bottom, 15)
 
             // ----- Glass CTA, only on the final pane -----
-            Group {
-                if isLastPage {
-                    Button { onFinished() } label: {
-                        Text("Continue to RxLog")
-                            .font(.headline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(.accent)
-                    .controlSize(.large)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+            Button { onFinished() } label: {
+                Text("Continue to RxLog")
+                    .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
             }
+            .buttonStyle(.glassProminent)
+            .tint(.accent)
+            .controlSize(.large)
+            .opacity(ctaProgress)
+            .scaleEffect(0.85 + 0.15 * ctaProgress)
+            .offset(y: (1 - ctaProgress) * 30)
+            .allowsHitTesting(ctaProgress > 0.95)
             .frame(height: 80)
-            .animation(.bouncy(duration: 0.75), value: isLastPage)
         }
     }
 }
@@ -111,41 +128,45 @@ struct OnboardingView: View {
 // MARK: - Single pane's visual
 private struct PaneView: View {
     let page: OnboardingPage
-
-    var body: some View {
-        VStack(spacing: 25) {
-            Spacer()
-
-            Image(systemName: page.symbol)
-                .font(.system(size: 150, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            Color.accentColorLight,
-                            Color.accentColorDark
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ))
-                .padding(40)
-
-            VStack(spacing: 12) {
-                Text(page.title)
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.black)
-
-                Text(page.description)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.black.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+    
+    var body: some View{
+        VStack {
+            Spacer(minLength: 0)
+            
+            VStack(spacing: 28) {
+                Image(systemName: page.symbol)
+                    .font(.system(size: 150, weight: .semibold))
+                    .foregroundStyle(brandGradient)
+                    .frame(height: 180)
+                    .frame(maxWidth: .infinity)
+                
+                VStack(spacing: 12) {
+                    Text(page.title)
+                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.black)
+                    
+                    Text(page.description)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.black.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(height: 150, alignment: .top)
+                .padding(.horizontal, 40)
             }
-
-            Spacer()
-            Spacer()
+            
+            Spacer(minLength: 0)
         }
     }
+}
+
+private var brandGradient: LinearGradient {
+    LinearGradient(
+        colors: [Color.accentColorLight, Color.accentColorDark],
+        startPoint: .top,
+        endPoint: .bottom
+    )
 }
 
 #Preview {
