@@ -17,6 +17,11 @@ struct WardNotesView: View {
     // Current layout, defaults to waterfall
     @State private var displayStyle: NoteDisplayStyle = .waterfall
     
+    // Date-bucketed sections for the grid and list layouts
+    private var sections: [NoteSection] {
+        NoteSectioner.sections(from: notes)
+    }
+    
     var body: some View {
         NavigationStack {
             content
@@ -42,12 +47,12 @@ struct WardNotesView: View {
                 }
                 
             case .grid:
-                // TODO: date-sectioned uniform grid
-                ScrollView { Text("Grid view - coming soon") }
+                ScrollView {
+                    NoteSectionedGrid(sections: sections)
+                }
                 
             case .list:
-                // TODO: date-sectioned list with compact rows
-                ScrollView { Text("List view - coming soon") }
+                NoteSectionedList(sections: sections)
             }
         }
     }
