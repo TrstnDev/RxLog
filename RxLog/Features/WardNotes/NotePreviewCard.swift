@@ -15,18 +15,20 @@ struct NotePreviewCard: View {
             Text(note.title)
                 .font(.headline)
                 .lineLimit(2)
+                .tracking(-0.5)
             
             Text(note.content)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(6)
+                .tracking(-0.3)
         }
+        .fontDesign(.monospaced)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(
             Color("NotePreviewBackground"),
             in: RoundedRectangle(cornerRadius: 30, style: .continuous)
         )
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
     }
 }
