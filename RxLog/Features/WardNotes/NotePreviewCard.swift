@@ -16,12 +16,14 @@ struct NotePreviewCard: View {
                 .font(.headline)
                 .lineLimit(2)
                 .tracking(-0.5)
+                .fontWeight(.bold)
             
             Text(note.content)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(6)
                 .tracking(-0.3)
+                .fontWeight(.medium)
         }
         .fontDesign(.monospaced)
         .frame(maxWidth: .infinity, alignment: .leading)
