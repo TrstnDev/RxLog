@@ -27,7 +27,7 @@ struct RootView: View {
                 })
                 .transition(.opacity)
             } else {
-                ContentView()
+                MainTabView()
                     .transition(.opacity)
             }
         }

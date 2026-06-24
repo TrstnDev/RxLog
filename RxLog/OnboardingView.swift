@@ -41,14 +41,13 @@ struct OnboardingView: View {
         )
     ]
 
-    private var currentPage: Int {
-        min(max(Int(pageProgress.rounded()), 0), pages.count - 1)
+    private func centeredness(_ i: Int) -> CGFloat {
+        max(0, 1 - abs(pageProgress - CGFloat(i)))
     }
     
     private var ctaProgress: CGFloat {
         guard pages.count >= 2 else { return 0 }
-        let raw = pageProgress - CGFloat(pages.count - 2)
-        return min(max(raw, 0), 1)
+        return min(max(pageProgress - CGFloat(pages.count - 2), 0), 1)
     }
 
     var body: some View {
@@ -57,7 +56,7 @@ struct OnboardingView: View {
             // ----- Skip button -----
             HStack {
                 Spacer()
-                Button() { onFinished() } label: {
+                Button { onFinished() } label: {
                     HStack(spacing: 0) {
                         Text("Skip")
                             .font(.subheadline)
@@ -68,7 +67,7 @@ struct OnboardingView: View {
                             .fontWeight(.semibold)
                     }
                 }
-                    .foregroundStyle(.black.opacity(0.8))
+                    .foregroundStyle(.secondary)
                     .buttonStyle(.glass)
                     .padding(.trailing, 30)
                     .padding(.top, 8)
@@ -88,8 +87,7 @@ struct OnboardingView: View {
             .onScrollGeometryChange(for: CGFloat.self) { geo in
                 let totalWidth = geo.contentSize.width
                 guard totalWidth > 0 else { return 0 }
-                let paneWidth = totalWidth / CGFloat(pages.count)
-                return geo.contentOffset.x / paneWidth
+                return geo.contentOffset.x / (totalWidth / CGFloat(pages.count))
             } action: { _, newValue in
                 pageProgress = newValue
             }
@@ -97,12 +95,12 @@ struct OnboardingView: View {
             // ----- Custom page indicator -----
             HStack(spacing: 8) {
                 ForEach(pages.indices, id: \.self) { i in
+                    let activeness = max(0, 1 - abs(pageProgress - CGFloat(i)))
                     Capsule()
-                        .fill(i == currentPage ? .black : .black.opacity(0.3))
-                        .frame(width: i == currentPage ? 20 : 8, height: 8)
+                        .fill(Color.primary.opacity(0.3 + 0.7 * activeness))
+                        .frame(width: 8 + 12 * activeness, height: 8)
                 }
             }
-            .animation(.bouncy, value: currentPage)
             .padding(.top, 8)
             .padding(.bottom, 15)
 
@@ -134,26 +132,37 @@ private struct PaneView: View {
             Spacer(minLength: 0)
             
             VStack(spacing: 28) {
+                
+                // ----- ICON -----
                 Image(systemName: page.symbol)
                     .font(.system(size: 150, weight: .semibold))
                     .foregroundStyle(brandGradient)
                     .frame(height: 180)
                     .frame(maxWidth: .infinity)
+                    .scrollTransition(.animated(.bouncy(duration: 0.4)), axis: .horizontal) { content, phase in
+                        content
+                            .opacity(phase.isIdentity ? 1 : 0)
+                            .scaleEffect(phase.isIdentity ? 1 : 0.5)
+                    }
                 
+                // ----- TITLE + DESCRIPTION -----
                 VStack(spacing: 12) {
                     Text(page.title)
                         .font(.system(size: 30, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.primary)
                     
                     Text(page.description)
                         .font(.body)
                         .fontWeight(.medium)
-                        .foregroundStyle(.black.opacity(0.8))
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(height: 150, alignment: .top)
                 .padding(.horizontal, 40)
+                .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                    content.scaleEffect(phase.isIdentity ? 1 : 0.7)
+                }
             }
             
             Spacer(minLength: 0)
