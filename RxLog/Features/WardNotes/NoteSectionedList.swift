@@ -14,12 +14,17 @@ struct NoteSectionedList: View {
     var body: some View {
         List {
             ForEach(sections) { section in
-                Section(section.title) {
+                Section {
                     ForEach(section.notes) { note in
                         NoteListRow(note: note)
                             .listRowSeparator(.hidden)
                     }
+                } header: {
+                    if let title = section.title {
+                        Text(title)
+                    }
                 }
+                .listSectionSeparator(.hidden)
             }
         }
         .listStyle(.plain)

@@ -15,11 +15,12 @@ struct NoteSectionedGrid: View {
         LazyVStack(alignment: .leading, spacing: 24) {
             ForEach(sections) { section in
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(section.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 4)
-                    
+                    if let title = section.title {
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 4)
+                    }
                     ForEach(section.notes) { note in
                         NotePreviewCard(note: note)
                     }

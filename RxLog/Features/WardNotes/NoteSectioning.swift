@@ -10,7 +10,7 @@ import Foundation
 // One dated group of notes
 struct NoteSection: Identifiable {
     let id: String
-    var title: String { id }
+    let title: String?
     let notes: [Note]
 }
 
@@ -43,7 +43,7 @@ enum NoteSectioner {
             buckets[title]?.append(note)
         }
         
-        return order.map { NoteSection(id: $0, notes: buckets[$0] ?? []) }
+        return order.map { NoteSection(id: $0, title: $0, notes: buckets[$0] ?? []) }
     }
     
     /// Maps a single date to its section title
