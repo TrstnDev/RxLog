@@ -18,6 +18,10 @@ struct WardNotesView: View {
     @State private var filter = NoteFilter()
     @State private var showingFilter = false
     
+    // --- Selection ---
+    @State private var isSelecting = false
+    @State private var selectedNoteIDs = Set<Note.ID>()
+    
     // Stage 1 of filter & search - content stored as encoded Data
     private var filteredNotes: [Note] {
         allNotes.filter { note in
@@ -51,23 +55,43 @@ struct WardNotesView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Ward Notes")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        filterButton
-                    }
-                    
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                    
-                    ToolbarItem(placement: .topBarTrailing) {
-                        optionsMenu
-                    }
-                }
+                .navigationTitle(navTitle)
+                .navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
+                .toolbar { toolbarContent }
                 .sheet(isPresented: $showingFilter) {
                     NoteFilterSheet(filter: $filter)
                 }
         }
     }
+    
+    // MARK: Toolbar
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if isSelecting {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(allSelected ? "Deselect All" : "Select All") { toggleSelectAll() }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") { setSelecting(false) }
+                    .fontWeight(.semibold)
+            }
+        } else {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Select") { setSelecting(true) }
+                    .disabled(sortedNotes.isEmpty)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                filterButton
+            }
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItem(placement: .topBarTrailing) {
+                optionsMenu
+            }
+        }
+    }
+    
+    // MARK: Content
     
     @ViewBuilder
     private var content: some View {
@@ -86,25 +110,38 @@ struct WardNotesView: View {
     @ViewBuilder
     private var notesContent: some View {
         switch displayStyle {
+        
         case .waterfall:
             ScrollView {
                 searchBar
                 if sortedNotes.isEmpty {
                     noResults
                 } else {
-                    NoteWaterfall(notes: sortedNotes)
-                        .padding(.horizontal)
+                    NoteWaterfall(
+                        notes: sortedNotes,
+                        isSelecting: isSelecting,
+                        selectedIDs: selectedNoteIDs,
+                        onToggle: toggleSelection
+                    )
+                    .padding(.horizontal)
                 }
             }
+            
         case .grid:
             ScrollView {
                 searchBar
                 if sortedNotes.isEmpty {
                     noResults
                 } else {
-                    NoteSectionedGrid(sections: sections)
+                    NoteSectionedGrid(
+                        sections: sections,
+                        isSelecting: isSelecting,
+                        selectedIDs: selectedNoteIDs,
+                        onToggle: toggleSelection
+                    )
                 }
             }
+            
         case .list:
             List {
                 searchBar
@@ -120,7 +157,7 @@ struct WardNotesView: View {
                     ForEach(sections) { section in
                         Section {
                             ForEach(section.notes) { note in
-                                NoteListRow(note: note)
+                                listRow(note)
                                     .listRowSeparator(.hidden)
                             }
                         } header: {
@@ -131,8 +168,59 @@ struct WardNotesView: View {
                 }
             }
             .listStyle(.plain)
+            
         }
     }
+    
+    // A list row with a leading selection circle while selecting
+    @ViewBuilder
+    private func listRow(_ note: Note) -> some View {
+        HStack(spacing: 12) {
+            if isSelecting {
+                SelectionIndicator(isSelected: selectedNoteIDs.contains(note.id))
+                    .transition(.scale.combined(with: .opacity))
+            }
+            NoteListRow(note: note)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isSelecting { toggleSelection(note) }
+        }
+    }
+    
+    // MARK: Selection Helpers
+    
+    private var navTitle: String {
+        guard isSelecting else { return "Ward Notes" }
+        return selectedNoteIDs.isEmpty ? "Select Notes" : "\(selectedNoteIDs.count) Selected"
+    }
+    
+    private var allSelected: Bool {
+        !sortedNotes.isEmpty && selectedNoteIDs.count == sortedNotes.count
+    }
+    
+    private func toggleSelection(_ note: Note) {
+        if selectedNoteIDs.contains(note.id) {
+            selectedNoteIDs.remove(note.id)
+        } else {
+            selectedNoteIDs.insert(note.id)
+        }
+    }
+    
+    private func toggleSelectAll() {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            selectedNoteIDs = allSelected ? [] : Set(sortedNotes.map(\.id))
+        }
+    }
+    
+    private func setSelecting(_ on: Bool) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isSelecting = on
+            if !on { selectedNoteIDs.removeAll() }
+        }
+    }
+    
+    // MARK: Reusable bits
     
     private var searchBar: some View {
         SearchBar(text: $searchText)

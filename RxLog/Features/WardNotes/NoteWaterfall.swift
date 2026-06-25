@@ -6,11 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct NoteWaterfall: View {
     let notes: [Note]
     var columnCount: Int = 2
     var spacing: CGFloat = 12
+    
+    // Optional selection
+    var isSelecting: Bool = false
+    var selectedIDs: Set<Note.ID> = []
+    var onToggle: (Note) -> Void = { _ in }
     
     private var columns: [[Note]] {
         var buckets = Array(repeating: [Note](), count: columnCount)
@@ -26,6 +32,11 @@ struct NoteWaterfall: View {
                 LazyVStack(spacing: spacing) {
                     ForEach(columnNotes) { note in
                         NotePreviewCard(note: note)
+                            .noteSelectable(
+                                isSelecting: isSelecting,
+                                isSelected: selectedIDs.contains(note.id),
+                                onToggle: { onToggle(note) }
+                            )
                     }
                 }
             }
