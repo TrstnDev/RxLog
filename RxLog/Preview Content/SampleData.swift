@@ -63,6 +63,24 @@ enum SampleData {
                 dateCreated: daysAgo(60),
                 dateModified: daysAgo(55),
                 lastViewed: daysAgo(40)
+            ),
+            Note(
+                title: "MoCA Exam steps",
+                content: AttributedString("Listing the steps of the Montreal Cognitive Assessment: Visuospatial & Executive, Memory, Attention, Language, Abstraction and Orientation. Total points: 30. Normal range is 26 or higher; add one point for anyone with 12 years or less of formal education."),
+                dateCreated: daysAgo(9), dateModified: daysAgo(0), lastViewed: daysAgo(0),
+                isFavourite: true
+            ),
+            Note(
+                title: "Signs of  ruptured Ectopic Pregnancy",
+                content: AttributedString("Sudden excruciating abdominal/pelvic pain, dizziness, fainting, signs of shock, unique sharp pain radiating to the tip of the shoulder."),
+                dateCreated: daysAgo(34), dateModified: daysAgo(13), lastViewed: daysAgo(6),
+                isFavourite: true
+            ),
+            Note(
+                title: "The 5Ps of Compartment Syndrome",
+                content: AttributedString("Pain, Paresthesia, Pallor, Pulselessness, and Paralysis. Do not wait for all 5 signs before intervening - if all 5 are present it is usually already advanced and tissue necrosis is imminent or already present!"),
+                dateCreated: daysAgo(2), dateModified: daysAgo(0), lastViewed: daysAgo(1),
+                isFavourite: true
             )
         ]
     }
