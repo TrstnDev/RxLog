@@ -10,6 +10,7 @@ import SwiftData
 
 struct WardNotesView: View {
     
+    @Environment(\.modelContext) private var modelContext
     @Query private var allNotes: [Note]
     
     @State private var displayStyle: NoteDisplayStyle = .waterfall
@@ -21,6 +22,9 @@ struct WardNotesView: View {
     // --- Selection ---
     @State private var isSelecting = false
     @State private var selectedNoteIDs = Set<Note.ID>()
+    @State private var showingDeleteConfirmation = false
+    
+    @State private var editingNote: Note?
     
     // Stage 1 of filter & search - content stored as encoded Data
     private var filteredNotes: [Note] {
@@ -61,6 +65,18 @@ struct WardNotesView: View {
                 .sheet(isPresented: $showingFilter) {
                     NoteFilterSheet(filter: $filter)
                 }
+                .alert(
+                    "Delete \(selectedNoteIDs.count) \(selectedNoteIDs.count == 1 ? "Note" : "Notes")?",
+                    isPresented: $showingDeleteConfirmation
+                ) {
+                    Button("Delete", role: .destructive) { deleteSelected() }
+                    Button("Cancel", role: .cancel) { }
+                } message: {
+                    Text("This can't be undone.")
+                }
+        }
+        .navigationDestination(item: $editingNote) { note in
+            NoteEditorView(note: note)
         }
     }
     
@@ -75,6 +91,33 @@ struct WardNotesView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Done") { setSelecting(false) }
                     .fontWeight(.semibold)
+            }
+            ToolbarItemGroup(placement: .bottomBar) {
+                ShareLink(item: shareText) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .disabled(selectedNoteIDs.isEmpty)
+                
+                Spacer()
+                
+                Button {
+                    favouriteSelected()
+                } label: {
+                    Label(
+                        allSelectedAreFavourite ? "Unfavourite" : "Favourite",
+                        systemImage: allSelectedAreFavourite ? "star.slash" : "star"
+                    )
+                }
+                .disabled(selectedNoteIDs.isEmpty)
+                
+                Spacer()
+                
+                Button(role: .destructive) {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .disabled(selectedNoteIDs.isEmpty)
             }
         } else {
             ToolbarItem(placement: .topBarTrailing) {
@@ -121,7 +164,7 @@ struct WardNotesView: View {
                         notes: sortedNotes,
                         isSelecting: isSelecting,
                         selectedIDs: selectedNoteIDs,
-                        onToggle: toggleSelection
+                        onTap: handleTap
                     )
                     .padding(.horizontal)
                 }
@@ -137,7 +180,7 @@ struct WardNotesView: View {
                         sections: sections,
                         isSelecting: isSelecting,
                         selectedIDs: selectedNoteIDs,
-                        onToggle: toggleSelection
+                        onTap: handleTap
                     )
                 }
             }
@@ -184,7 +227,7 @@ struct WardNotesView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if isSelecting { toggleSelection(note) }
+            if isSelecting { handleTap(note) }
         }
     }
     
@@ -207,6 +250,14 @@ struct WardNotesView: View {
         }
     }
     
+    private func handleTap(_ note: Note){
+        if isSelecting {
+            toggleSelection(note)
+        } else {
+            editingNote = note
+        }
+    }
+    
     private func toggleSelectAll() {
         withAnimation(.easeInOut(duration: 0.15)) {
             selectedNoteIDs = allSelected ? [] : Set(sortedNotes.map(\.id))
@@ -218,6 +269,41 @@ struct WardNotesView: View {
             isSelecting = on
             if !on { selectedNoteIDs.removeAll() }
         }
+    }
+    
+    // MARK: Bulk actions
+    
+    private var selectedNotes: [Note] {
+        allNotes.filter { selectedNoteIDs.contains($0.id) }
+    }
+    
+    private var allSelectedAreFavourite: Bool {
+        !selectedNotes.isEmpty && selectedNotes.allSatisfy(\.isFavourite)
+    }
+    
+    // Plain-text rendering of the selected notes for the share sheet
+    private var shareText: String {
+        selectedNotes
+            .map { note in
+                let body = String(note.content.characters)
+                return body.isEmpty ? note.title : "\(note.title)\n\n\(body)"
+            }
+            .joined(separator: "\n\n---\n\n")
+    }
+    
+    private func favouriteSelected() {
+        let newValue = !allSelectedAreFavourite
+        for note in selectedNotes {
+            note.isFavourite = newValue
+        }
+        setSelecting(false)
+    }
+    
+    private func deleteSelected() {
+        for note in selectedNotes {
+            modelContext.delete(note)
+        }
+        setSelecting(false)
     }
     
     // MARK: Reusable bits

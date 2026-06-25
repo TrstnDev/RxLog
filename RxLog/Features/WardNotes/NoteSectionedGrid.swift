@@ -14,7 +14,7 @@ struct NoteSectionedGrid: View {
     
     var isSelecting: Bool = false
     var selectedIDs: Set<Note.ID> = []
-    var onToggle: (Note) -> Void = { _ in }
+    var onTap: (Note) -> Void = { _ in }
     
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 24) {
@@ -31,7 +31,7 @@ struct NoteSectionedGrid: View {
                             .noteSelectable(
                                 isSelecting: isSelecting,
                                 isSelected: selectedIDs.contains(note.id),
-                                onToggle: { onToggle(note) }
+                                onTap: { onTap(note) }
                             )
                     }
                 }

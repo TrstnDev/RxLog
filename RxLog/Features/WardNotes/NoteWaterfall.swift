@@ -16,7 +16,7 @@ struct NoteWaterfall: View {
     // Optional selection
     var isSelecting: Bool = false
     var selectedIDs: Set<Note.ID> = []
-    var onToggle: (Note) -> Void = { _ in }
+    var onTap: (Note) -> Void = { _ in }
     
     private var columns: [[Note]] {
         var buckets = Array(repeating: [Note](), count: columnCount)
@@ -35,7 +35,7 @@ struct NoteWaterfall: View {
                             .noteSelectable(
                                 isSelecting: isSelecting,
                                 isSelected: selectedIDs.contains(note.id),
-                                onToggle: { onToggle(note) }
+                                onTap: { onTap(note) }
                             )
                     }
                 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct MainTabView: View {
     var body: some View {
@@ -20,6 +21,7 @@ struct MainTabView: View {
             
             Tab("Ward Notes", systemImage: "note.text") {
                 WardNotesView()
+                    .modelContainer(SampleData.previewContainer)
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)

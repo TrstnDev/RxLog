@@ -36,7 +36,7 @@ struct NoteSelectable: ViewModifier {
     let isSelecting: Bool
     let isSelected: Bool
     var cornerRadius: CGFloat = 25
-    let onToggle: () -> Void
+    let onTap: () -> Void
     
     // Incremented on each tap of a card; drives bounce animation
     @State private var bounceTrigger = 0
@@ -58,10 +58,8 @@ struct NoteSelectable: ViewModifier {
             }
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .onTapGesture {
-                if isSelecting {
-                    bounceTrigger += 1
-                    onToggle()
-                }
+                if isSelecting { bounceTrigger += 1 }
+                onTap()
             }
             .keyframeAnimator(initialValue: 1.0, trigger: bounceTrigger) { view, scale in
                 view.scaleEffect(scale)
@@ -77,13 +75,13 @@ extension View {
         isSelecting: Bool,
         isSelected: Bool,
         cornerRadius: CGFloat = 25,
-        onToggle: @escaping () -> Void
+        onTap: @escaping () -> Void
     ) -> some View {
         modifier(NoteSelectable(
             isSelecting: isSelecting,
             isSelected: isSelected,
             cornerRadius: cornerRadius,
-            onToggle: onToggle
+            onTap: onTap
         ))
     }
 }

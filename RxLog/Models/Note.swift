@@ -17,6 +17,8 @@ final class Note {
     // Rich-text content
     private var contentData: Data
     
+    var plainText: String
+    
     var dateCreated: Date
     var dateModified: Date
     var lastViewed: Date
@@ -29,6 +31,7 @@ final class Note {
         }
         set {
             contentData = (try? JSONEncoder().encode(newValue)) ?? Data()
+            plainText = String(newValue.characters)
         }
     }
     
@@ -42,6 +45,7 @@ final class Note {
     ) {
         self.title = title
         self.contentData = (try? JSONEncoder().encode(content)) ?? Data()
+        self.plainText = String(content.characters)
         self.dateCreated = dateCreated
         self.dateModified = dateModified
         self.lastViewed = lastViewed
