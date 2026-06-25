@@ -38,6 +38,9 @@ struct NoteSelectable: ViewModifier {
     var cornerRadius: CGFloat = 25
     let onToggle: () -> Void
     
+    // Incremented on each tap of a card; drives bounce animation
+    @State private var bounceTrigger = 0
+    
     func body(content: Content) -> some View {
         content
             .overlay(alignment: .topLeading) {
@@ -55,7 +58,16 @@ struct NoteSelectable: ViewModifier {
             }
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .onTapGesture {
-                if isSelecting { onToggle() }
+                if isSelecting {
+                    bounceTrigger += 1
+                    onToggle()
+                }
+            }
+            .keyframeAnimator(initialValue: 1.0, trigger: bounceTrigger) { view, scale in
+                view.scaleEffect(scale)
+            } keyframes: { _ in
+                SpringKeyframe(0.91, duration: 0.14, spring: .snappy)
+                SpringKeyframe(1.0, duration: 0.5, spring: .bouncy)
             }
     }
 }
