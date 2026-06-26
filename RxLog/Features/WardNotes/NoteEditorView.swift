@@ -10,6 +10,7 @@ import SwiftData
 
 struct NoteEditorView: View {
     
+    @Environment(\.modelContext) private var modelContext
     @Bindable var note: Note
     
     @State private var selection = AttributedTextSelection()
@@ -34,6 +35,15 @@ struct NoteEditorView: View {
         .onChange(of: note.content) { note.dateModified = .now }
         .onAppear { note.lastViewed = .now }
         .toolbarVisibility(.hidden, for: .tabBar)
+        .onDisappear { discardIfBlank() }
+    }
+    
+    private func discardIfBlank() {
+        let titleBlank = note.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let bodyBlank = note.plainText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if titleBlank && bodyBlank {
+            modelContext.delete(note)
+        }
     }
 }
 

@@ -32,7 +32,7 @@ struct WardNotesView: View {
             guard filter.matches(note) else { return false }
             guard !searchText.isEmpty else { return true }
             return note.title.localizedStandardContains(searchText)
-                || String(note.content.characters).localizedStandardContains(searchText)
+            || note.plainText.localizedStandardContains(searchText)
         }
     }
     
@@ -63,6 +63,13 @@ struct WardNotesView: View {
                 .navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
                 .toolbar { toolbarContent }
                 .toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
+                .overlay(alignment: .bottomTrailing) {
+                    if !isSelecting {
+                        composeButton
+                            .padding(20)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
                 .sheet(isPresented: $showingFilter) {
                     NoteFilterSheet(filter: $filter)
                 }
@@ -341,6 +348,27 @@ struct WardNotesView: View {
                   ? "line.3.horizontal.decrease.circle.fill"
                   : "line.3.horizontal.decrease.circle")
         }
+    }
+    
+    private var composeButton: some View {
+        Button {
+            compose()
+        } label: {
+            Image(systemName: "pencil")
+                .font(.title2)
+                .fontWeight(.black)
+                .frame(width: 45, height: 45)
+        }
+        .buttonStyle(.glassProminent)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("New Note")
+    }
+    
+    // Creates a blank note, inserts it, and opens the editor
+    private func compose() {
+        let note = Note()
+        modelContext.insert(note)
+        editingNote = note
     }
     
     // Options menu
