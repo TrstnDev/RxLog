@@ -62,6 +62,7 @@ struct WardNotesView: View {
                 .navigationTitle(navTitle)
                 .navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
                 .toolbar { toolbarContent }
+                .toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
                 .sheet(isPresented: $showingFilter) {
                     NoteFilterSheet(filter: $filter)
                 }
@@ -74,9 +75,9 @@ struct WardNotesView: View {
                 } message: {
                     Text("This can't be undone.")
                 }
+                .navigationDestination(item: $editingNote) { note in
+                    NoteEditorView(note: note)
         }
-        .navigationDestination(item: $editingNote) { note in
-            NoteEditorView(note: note)
         }
     }
     

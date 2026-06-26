@@ -10,6 +10,7 @@ import SwiftData
 
 // "Grid" layout: full-width note cards stacked under date-sectioned headers
 struct NoteSectionedGrid: View {
+    
     let sections: [NoteSection]
     
     var isSelecting: Bool = false
@@ -43,7 +44,5 @@ struct NoteSectionedGrid: View {
 }
 
 #Preview {
-    ScrollView {
-        NoteSectionedGrid(sections: NoteSectioner.sections(from: SampleData.sampleNotes))
-    }
+    NoteSectionedList(sections: NoteSectioner.sections(from: SampleData.sampleNotes))
 }

@@ -33,6 +33,7 @@ struct NoteEditorView: View {
         .onChange(of: note.title) { note.dateModified = .now }
         .onChange(of: note.content) { note.dateModified = .now }
         .onAppear { note.lastViewed = .now }
+        .toolbarVisibility(.hidden, for: .tabBar)
     }
 }
 

@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct NoteWaterfall: View {
+    
     let notes: [Note]
     var columnCount: Int = 2
     var spacing: CGFloat = 12
