@@ -136,7 +136,7 @@ private struct PaneView: View {
                 // ----- ICON -----
                 Image(systemName: page.symbol)
                     .font(.system(size: 150, weight: .semibold))
-                    .foregroundStyle(brandGradient)
+                    .foregroundStyle(Theme.brandGradient)
                     .frame(height: 180)
                     .frame(maxWidth: .infinity)
                     .scrollTransition(.animated(.bouncy(duration: 0.4)), axis: .horizontal) { content, phase in
@@ -168,14 +168,6 @@ private struct PaneView: View {
             Spacer(minLength: 0)
         }
     }
-}
-
-private var brandGradient: LinearGradient {
-    LinearGradient(
-        colors: [Color.accentColorLight, Color.accentColorDark],
-        startPoint: .top,
-        endPoint: .bottom
-    )
 }
 
 #Preview {

@@ -48,15 +48,8 @@ struct SplashView: View {
     var body: some View {
         ZStack {
             // ----- 1. Brand background -----
-            LinearGradient(
-                colors: [
-                    Color.accentColorLight,
-                    Color.accentColorDark
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            Theme.brandGradient
+                .ignoresSafeArea()
             
             // ----- 2. Glass logo -----
             Image(systemName: "pills.fill")

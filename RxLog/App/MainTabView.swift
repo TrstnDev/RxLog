@@ -8,20 +8,18 @@
 import SwiftUI
 import SwiftData
 
+/// <summary>The app's root tab bar</summary>
 struct MainTabView: View {
     var body: some View {
         TabView {
             Tab("Patients", systemImage: "person.2.fill") {
                 PatientsView()
             }
-            
             Tab("Calculator", systemImage: "function") {
                 CalculatorView()
             }
-            
             Tab("Ward Notes", systemImage: "note.text") {
                 WardNotesView()
-                    .modelContainer(SampleData.previewContainer)
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -30,4 +28,5 @@ struct MainTabView: View {
 
 #Preview {
     MainTabView()
+        .modelContainer(SampleData.previewContainer)
 }
