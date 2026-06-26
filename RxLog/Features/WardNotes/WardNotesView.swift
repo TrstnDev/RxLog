@@ -8,65 +8,46 @@
 import SwiftUI
 import SwiftData
 
+/// <summary>Ward Notes home screen</summary>
 struct WardNotesView: View {
-    
     @Environment(\.modelContext) private var modelContext
     @Query private var allNotes: [Note]
     
+    // Presentation knobs
     @State private var displayStyle: NoteDisplayStyle = .waterfall
     @State private var sortOption: NoteSortOption = .dateModified
-    @State private var searchText: String = ""
+    @State private var searchText = ""
     @State private var filter = NoteFilter()
     @State private var showingFilter = false
     
-    // --- Selection ---
+    // Selection
     @State private var isSelecting = false
     @State private var selectedNoteIDs = Set<Note.ID>()
     @State private var showingDeleteConfirmation = false
     
+    // Editor routing
     @State private var editingNote: Note?
     
-    // Stage 1 of filter & search - content stored as encoded Data
-    private var filteredNotes: [Note] {
-        allNotes.filter { note in
-            guard filter.matches(note) else { return false }
-            guard !searchText.isEmpty else { return true }
-            return note.title.localizedStandardContains(searchText)
-            || note.plainText.localizedStandardContains(searchText)
-        }
-    }
-    
-    // Stage 2 of filter & search - display order of filtered set
-    private var sortedNotes: [Note] {
-        if let dateKeyPath = sortOption.dateKeyPath {
-            return filteredNotes.sorted { $0[keyPath: dateKeyPath] > $1[keyPath: dateKeyPath] }
-        } else {
-            return filteredNotes.sorted {
-                $0.title.localizedStandardCompare($1.title) == .orderedAscending
-            }
-        }
-    }
-    
-    // Stage 3 of filter & search - bucket into sections for the grid and list layouts
-    private var sections: [NoteSection] {
-        if let dateKeyPath = sortOption.dateKeyPath {
-            return NoteSectioner.sections(from: sortedNotes, by: dateKeyPath)
-        } else {
-            return [NoteSection(id: "all", title: nil, notes: sortedNotes)]
-        }
-    }
-    
     var body: some View {
+        // Run filter -> sort -> section pipeline once per render
+        let sections = NoteListPipeline.sections(
+            from: allNotes,
+            searchText: searchText,
+            filter: filter,
+            sortOption: sortOption
+        )
+        let visibleNotes = sections.flatMap(\.notes)
+        
         NavigationStack {
-            content
+            content(sections: sections, visibleNotes: visibleNotes)
                 .navigationTitle(navTitle)
                 .navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
-                .toolbar { toolbarContent }
+                .toolbar { toolbarContent(visibleNotes: visibleNotes) }
                 .toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
                 .overlay(alignment: .bottomTrailing) {
                     if !isSelecting {
                         composeButton
-                            .padding(20)
+                            .padding(15)
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
@@ -88,18 +69,22 @@ struct WardNotesView: View {
         }
     }
     
-    // MARK: Toolbar
+    // MARK: TOOLBAR
     
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
+    private func toolbarContent(visibleNotes: [Note]) -> some ToolbarContent {
         if isSelecting {
             ToolbarItem(placement: .topBarLeading) {
-                Button(allSelected ? "Deselect All" : "Select All") { toggleSelectAll() }
+                Button(allSelected(in: visibleNotes) ? "Deselect All" : "Select All") {
+                    toggleSelectAll(in: visibleNotes)
+                }
             }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Done") { setSelecting(false) }
                     .fontWeight(.semibold)
             }
+            
             ToolbarItemGroup(placement: .bottomBar) {
                 ShareLink(item: shareText) {
                     Label("Share", systemImage: "square.and.arrow.up")
@@ -130,22 +115,25 @@ struct WardNotesView: View {
         } else {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Select") { setSelecting(true) }
-                    .disabled(sortedNotes.isEmpty)
+                    .disabled(visibleNotes.isEmpty)
             }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 filterButton
             }
+            
             ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            
             ToolbarItem(placement: .topBarTrailing) {
                 optionsMenu
             }
         }
     }
     
-    // MARK: Content
+    // MARK: CONTENT
     
     @ViewBuilder
-    private var content: some View {
+    private func content(sections: [NoteSection], visibleNotes: [Note]) -> some View {
         if allNotes.isEmpty {
             ContentUnavailableView {
                 Label("No Notes Yet", systemImage: "note.Text")
@@ -153,23 +141,23 @@ struct WardNotesView: View {
                 Text("Your ward notes will appear here.")
             }
         } else {
-            notesContent
+            notesContent(sections: sections, visibleNotes: visibleNotes)
                 .scrollDismissesKeyboard(.immediately)
         }
     }
     
     @ViewBuilder
-    private var notesContent: some View {
+    private func notesContent(sections: [NoteSection], visibleNotes: [Note]) -> some View {
         switch displayStyle {
         
         case .waterfall:
             ScrollView {
                 searchBar
-                if sortedNotes.isEmpty {
+                if visibleNotes.isEmpty {
                     noResults
                 } else {
                     NoteWaterfall(
-                        notes: sortedNotes,
+                        notes: visibleNotes,
                         isSelecting: isSelecting,
                         selectedIDs: selectedNoteIDs,
                         onTap: handleTap
@@ -181,7 +169,7 @@ struct WardNotesView: View {
         case .grid:
             ScrollView {
                 searchBar
-                if sortedNotes.isEmpty {
+                if visibleNotes.isEmpty {
                     noResults
                 } else {
                     NoteSectionedGrid(
@@ -200,7 +188,7 @@ struct WardNotesView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 
-                if sortedNotes.isEmpty {
+                if visibleNotes.isEmpty {
                     noResults
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
@@ -223,7 +211,7 @@ struct WardNotesView: View {
         }
     }
     
-    // A list row with a leading selection circle while selecting
+    /// <summary>A list row with a leading selection circle while selecting</summary>
     @ViewBuilder
     private func listRow(_ note: Note) -> some View {
         HStack(spacing: 12) {
@@ -234,20 +222,18 @@ struct WardNotesView: View {
             NoteListRow(note: note)
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            if isSelecting { handleTap(note) }
-        }
+        .onTapGesture { handleTap(note) }
     }
     
-    // MARK: Selection Helpers
+    // MARK: SELECTION HELPERS
     
     private var navTitle: String {
         guard isSelecting else { return "Ward Notes" }
         return selectedNoteIDs.isEmpty ? "Select Notes" : "\(selectedNoteIDs.count) Selected"
     }
     
-    private var allSelected: Bool {
-        !sortedNotes.isEmpty && selectedNoteIDs.count == sortedNotes.count
+    private func allSelected(in visibleNotes: [Note]) -> Bool {
+        !visibleNotes.isEmpty && selectedNoteIDs.count == visibleNotes.count
     }
     
     private func toggleSelection(_ note: Note) {
@@ -266,9 +252,9 @@ struct WardNotesView: View {
         }
     }
     
-    private func toggleSelectAll() {
+    private func toggleSelectAll(in visibleNotes: [Note]) {
         withAnimation(.easeInOut(duration: 0.15)) {
-            selectedNoteIDs = allSelected ? [] : Set(sortedNotes.map(\.id))
+            selectedNoteIDs = allSelected(in: visibleNotes) ? [] : Set(visibleNotes.map(\.id))
         }
     }
     
@@ -279,7 +265,7 @@ struct WardNotesView: View {
         }
     }
     
-    // MARK: Bulk actions
+    // MARK: BULK ACTIONS
     
     private var selectedNotes: [Note] {
         allNotes.filter { selectedNoteIDs.contains($0.id) }
@@ -293,8 +279,7 @@ struct WardNotesView: View {
     private var shareText: String {
         selectedNotes
             .map { note in
-                let body = String(note.content.characters)
-                return body.isEmpty ? note.title : "\(note.title)\n\n\(body)"
+                note.plainText.isEmpty ? note.title : "\(note.title)\n\n\(note.plainText)"
             }
             .joined(separator: "\n\n---\n\n")
     }
@@ -314,7 +299,7 @@ struct WardNotesView: View {
         setSelecting(false)
     }
     
-    // MARK: Reusable bits
+    // MARK: REUSABLE PIECES
     
     private var searchBar: some View {
         SearchBar(text: $searchText)
@@ -354,9 +339,9 @@ struct WardNotesView: View {
         Button {
             compose()
         } label: {
-            Image(systemName: "pencil")
+            Image(systemName: "pencil.and.scribble")
                 .font(.title2)
-                .fontWeight(.black)
+                .fontWeight(.bold)
                 .frame(width: 45, height: 45)
         }
         .buttonStyle(.glassProminent)
