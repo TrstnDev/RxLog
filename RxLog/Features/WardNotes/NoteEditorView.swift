@@ -11,8 +11,11 @@ import SwiftData
 struct NoteEditorView: View {
     
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.fontResolutionContext) private var fontResolutionContext
+    
     @Bindable var note: Note
     
+    @State private var text = AttributedString()
     @State private var selection = AttributedTextSelection()
     
     var body: some View {
@@ -25,26 +28,93 @@ struct NoteEditorView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
             
-            TextEditor(text: $note.content, selection: $selection)
-                .noteTypography()
+            TextEditor(text: $text, selection: $selection)
+				.font(.system(.body, design: .monospaced))
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 12)
         }
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: note.title) { note.dateModified = .now }
-        .onChange(of: note.content) { note.dateModified = .now }
-        .onAppear { note.lastViewed = .now }
+		.onAppear {
+			text = note.content
+			note.lastViewed = .now
+		}
+		.onDisappear { commitOrDiscard() }
         .toolbarVisibility(.hidden, for: .tabBar)
-        .onDisappear { discardIfBlank() }
-    }
-    
-    private func discardIfBlank() {
-        let titleBlank = note.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let bodyBlank = note.plainText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        if titleBlank && bodyBlank {
-            modelContext.delete(note)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Button { toggleBold() } label: { Image(systemName: "bold") }
+                    .foregroundStyle(isBold ? Color.accentColor : .primary)
+                Button { toggleItalic() } label: { Image(systemName: "italic") }
+                    .foregroundStyle(isItalic ? Color.accentColor : .primary)
+                Button { toggleUnderline() } label: { Image(systemName: "underline") }
+                    .foregroundStyle(hasUnderline ? Color.accentColor : .primary)
+                Button { toggleStrikethrough() } label: { Image(systemName: "strikethrough") }
+                    .foregroundStyle(hasStrikethrough ? Color.accentColor : .primary)
+                Spacer()
+            }
         }
     }
+    
+    // MARK: FORMATTING ACTIONS
+   
+    private func toggleBold() {
+        text.transformAttributes(in: &selection) { c in
+			let f = c.font ?? .system(.body, design: .monospaced)
+			c.font = f.bold(!f.resolve(in: fontResolutionContext).isBold)
+        }
+    }
+    
+    private func toggleItalic() {
+        text.transformAttributes(in: &selection) { c in
+			let f = c.font ?? .system(.body, design: .monospaced)
+			c.font = f.italic(!f.resolve(in: fontResolutionContext).isItalic)
+        }
+    }
+    
+    private func toggleUnderline() {
+        text.transformAttributes(in: &selection) { c in
+            c.underlineStyle = (c.underlineStyle == nil) ? .single : nil
+        }
+    }
+    
+    private func toggleStrikethrough() {
+        text.transformAttributes(in: &selection) { c in
+            c.strikethroughStyle = (c.strikethroughStyle == nil) ? .single : nil
+        }
+    }
+    
+    // MARK: ACTIVE-STATE
+    
+    private var isBold: Bool {
+        guard let font = selection.typingAttributes(in: text).font else { return false }
+        return font.resolve(in: fontResolutionContext).isBold
+    }
+    
+    private var isItalic: Bool {
+        guard let font = selection.typingAttributes(in: text).font else { return false }
+        return font.resolve(in: fontResolutionContext).isItalic
+    }
+    
+    private var hasUnderline: Bool {
+        selection.typingAttributes(in: text).underlineStyle != nil
+    }
+    
+    private var hasStrikethrough: Bool {
+        selection.typingAttributes(in: text).strikethroughStyle != nil
+    }
+    
+    // MARK: PERSISTENCE
+    
+	private func commitOrDiscard() {
+		let titleBlank = note.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+		let bodyBlank = String(text.characters).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+		if titleBlank && bodyBlank {
+			modelContext.delete(note)
+		} else {
+			note.content = text
+			note.dateModified = .now
+		}
+	}
 }
 
 #Preview {
