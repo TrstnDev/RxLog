@@ -4,10 +4,13 @@
 //
 //  Created by Tristan Kriel on 2026/06/25.
 //
+//	Multi-select affordances shared by the Ward Notes layouts
 
 import SwiftUI
 
-/// Circular checkbox shown on notes during Select mode
+// MARK: - Selection Indicator
+
+/// Circular checkbox shown on a note in Select mode
 struct SelectionIndicator: View {
 	let isSelected: Bool
 
@@ -31,14 +34,16 @@ struct SelectionIndicator: View {
 	}
 }
 
-/// Adds select-mode behaviour to a note card
+// MARK: - Selectable Modifier
+
+/// Adds select-mode behaviour to a card: indicator, highlight border, and tap bounce
 struct NoteSelectable: ViewModifier {
 	let isSelecting: Bool
 	let isSelected: Bool
 	var cornerRadius: CGFloat = 25
 	let onTap: () -> Void
 
-	/// Incremented on each tap of a card; drives bounce animation
+	/// Retriggers the bounce animation on each tap
 	@State private var bounceTrigger = 0
 
 	func body(content: Content) -> some View {
@@ -70,7 +75,10 @@ struct NoteSelectable: ViewModifier {
 	}
 }
 
+// MARK: - View + noteSelectable
+
 extension View {
+	/// Applies `NoteSelectable` to a card
 	func noteSelectable(
 		isSelecting: Bool,
 		isSelected: Bool,

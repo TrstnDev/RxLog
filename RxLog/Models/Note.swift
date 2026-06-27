@@ -8,15 +8,15 @@
 import SwiftData
 import SwiftUI
 
-/// <summary>Representation of one single ward note</summary>
+/// A ward note: title, rich-text body, favourite flag, and timestamps. Persisted via SwiftData.
 @Model
 final class Note {
 	var title: String
     
-	/// Rich-text content, JSON-encoded
+	/// Rich-text as JSON-encoded `Data`; backing store for `content`
 	private var contentData: Data
     
-	/// Plain-text mirror of 'content'
+	/// Plain-text mirror of `content` for search and previews; kept in sync by the `content` setter
 	var plainText: String
     
 	var dateCreated: Date
@@ -24,9 +24,7 @@ final class Note {
 	var lastViewed: Date
 	var isFavourite: Bool
     
-	/// <summary>Typed façade over 'contentData'</summary>
-	/// Getter decodes JSON -> 'AttributedString'
-	/// Setter re-encodes and refreshes 'plainText'
+	/// `AttributedString` façade over `contentData`; the setter also refreshes `plainText`
 	var content: AttributedString {
 		get {
 			(try? JSONDecoder().decode(AttributedString.self, from: contentData))
@@ -55,7 +53,7 @@ final class Note {
 		self.isFavourite = isFavourite
 	}
     
-	/// <summary>Single definition of how rich text is encoded for storage, shared by 'content' setter and 'init'</summary>
+	/// Encodes rich text to JSON for storage; shared by the `content` setter and `init`
 	private static func encode(_ value: AttributedString) -> Data {
 		(try? JSONEncoder().encode(value)) ?? Data()
 	}

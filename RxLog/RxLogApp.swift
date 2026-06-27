@@ -8,6 +8,7 @@
 import SwiftData
 import SwiftUI
 
+/// Application entry point
 @main
 struct RxLogApp: App {
 	var body: some Scene {

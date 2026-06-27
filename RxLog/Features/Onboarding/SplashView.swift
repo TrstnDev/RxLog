@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Animated launch screen: the brand mark fades in, holds, then zooms out before `onFinished`
 struct SplashView: View {
 	var onFinished: () -> Void
     
@@ -46,35 +47,26 @@ struct SplashView: View {
     
 	var body: some View {
 		ZStack {
-			// ----- 1. Brand background -----
 			Theme.brandGradient
 				.ignoresSafeArea()
             
-			// ----- 2. Glass logo -----
 			Image(systemName: "pills.fill")
 				.font(.system(size: 200, weight: .regular))
 				.foregroundStyle(.thickMaterial)
 				.padding(30)
-				// ----- 3. Entrance animation -----
 				.scaleEffect(logoScale)
 				.opacity(logoOpacity)
             
+			// Opaque wash during the zoom
 			Color(.systemBackground)
 				.ignoresSafeArea()
 				.opacity(washOpacity)
 				.allowsHitTesting(false)
 		}
 		.task {
-			// 1. ENTRANCE - fade + scale up
 			withAnimation(.bouncy(duration: 0.8)) { phase = .visible }
-            
-			// 2. HOLD
 			try? await Task.sleep(for: .seconds(1.0))
-            
-			// 3. ZOOM + WASH
 			withAnimation(.bouncy(duration: 0.7)) { phase = .zooming }
-            
-			// 4. HANDOFF
 			try? await Task.sleep(for: .seconds(0.5))
 			onFinished()
 		}

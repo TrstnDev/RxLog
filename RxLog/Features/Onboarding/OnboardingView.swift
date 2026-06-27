@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-// MARK: - Data model for a single pane
+// MARK: - Page Model
 
+/// Content for a single onboarding pane
 struct OnboardingPage: Identifiable {
 	let id = UUID()
 	let symbol: String
@@ -16,14 +17,15 @@ struct OnboardingPage: Identifiable {
 	let description: String
 }
 
-// MARK: - The onboarding flow
+// MARK: - Onboarding Flow
 
+/// Paged onboarding with a scroll-driven indicator and a CTA that reveals the last pane
 struct OnboardingView: View {
 	var onFinished: () -> Void
 
+	/// Scroll position in pages (fractional while scrolling)
 	@State private var pageProgress: CGFloat = 0
 
-	/// Static content
 	private let pages: [OnboardingPage] = [
 		OnboardingPage(
 			symbol: "heart.text.clipboard.fill",
@@ -42,10 +44,12 @@ struct OnboardingView: View {
 		)
 	]
 
+	/// Proximity of page `i` to the current position (0...1); Currently unused
 	private func centeredness(_ i: Int) -> CGFloat {
 		max(0, 1 - abs(pageProgress - CGFloat(i)))
 	}
 
+	/// Reveal progress (0...1) of the final-pane CTA
 	private var ctaProgress: CGFloat {
 		guard pages.count >= 2 else { return 0 }
 		return min(max(pageProgress - CGFloat(pages.count - 2), 0), 1)
@@ -53,7 +57,7 @@ struct OnboardingView: View {
 
 	var body: some View {
 		VStack(spacing: 0) {
-			// ----- Skip button -----
+			// Skip button
 			HStack {
 				Spacer()
 				Button { onFinished() } label: {
@@ -73,7 +77,7 @@ struct OnboardingView: View {
 				.padding(.top, 8)
 			}
 
-			// ----- Swipeable panes -----
+			// Swipeable panes
 			ScrollView(.horizontal) {
 				HStack(spacing: 0) {
 					ForEach(pages) { page in
@@ -92,7 +96,7 @@ struct OnboardingView: View {
 				pageProgress = newValue
 			}
 
-			// ----- Custom page indicator -----
+			// Custom page indicator
 			HStack(spacing: 8) {
 				ForEach(pages.indices, id: \.self) { i in
 					let activeness = max(0, 1 - abs(pageProgress - CGFloat(i)))
@@ -104,7 +108,7 @@ struct OnboardingView: View {
 			.padding(.top, 8)
 			.padding(.bottom, 15)
 
-			// ----- Glass CTA, only on the final pane -----
+			// Final-pane call to action
 			Button { onFinished() } label: {
 				Text("Continue to RxLog")
 					.font(.headline)
@@ -123,8 +127,9 @@ struct OnboardingView: View {
 	}
 }
 
-// MARK: - Single pane's visual
+// MARK: - Pane
 
+/// A single onboarding pane: large symbol over a title and description
 private struct PaneView: View {
 	let page: OnboardingPage
 
@@ -133,7 +138,6 @@ private struct PaneView: View {
 			Spacer(minLength: 0)
 
 			VStack(spacing: 28) {
-				// ----- ICON -----
 				Image(systemName: page.symbol)
 					.font(.system(size: 150, weight: .semibold))
 					.foregroundStyle(Theme.brandGradient)
@@ -145,7 +149,6 @@ private struct PaneView: View {
 							.scaleEffect(phase.isIdentity ? 1 : 0.5)
 					}
 
-				// ----- TITLE + DESCRIPTION -----
 				VStack(spacing: 12) {
 					Text(page.title)
 						.font(.system(size: 30, weight: .heavy, design: .rounded))

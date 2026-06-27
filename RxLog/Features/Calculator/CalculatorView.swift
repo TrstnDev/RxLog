@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Placeholder for the clinical calculators feature
 struct CalculatorView: View {
 	var body: some View {
 		NavigationStack {

@@ -7,10 +7,9 @@
 
 import SwiftUI
 
-/// RootView is a lightweight coordinator: only decides whether to still show the splash or move on
+/// Coordinates the splash -> onboarding -> main interface flow
 struct RootView: View {
 	@AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-
 	@State private var splashFinished = false
 
 	var body: some View {

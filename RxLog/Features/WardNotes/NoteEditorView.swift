@@ -8,19 +8,19 @@
 import SwiftData
 import SwiftUI
 
+/// Rich-text editor for a single note, with bold/italic/underline/strikethrough
 struct NoteEditorView: View {
-	// MARK: DECLARATIONS
-	
 	@Environment(\.modelContext) private var modelContext
 	@Environment(\.fontResolutionContext) private var fontResolutionContext
 	@Environment(\.scenePhase) private var scenePhase
     
 	@Bindable var note: Note
     
+	/// Editable buffer; committed to `note.content` on exit and on backgrounding
 	@State private var text = AttributedString()
 	@State private var selection = AttributedTextSelection()
     
-	// MARK: BODY
+	// MARK: - Body
 	
 	var body: some View {
 		VStack(alignment: .leading, spacing: 8) {
@@ -62,7 +62,7 @@ struct NoteEditorView: View {
 		}
 	}
     
-	// MARK: FORMATTING ACTIONS
+	// MARK: - Formatting Actions
    
 	private func toggleBold() {
 		text.transformAttributes(in: &selection) { c in
@@ -90,7 +90,7 @@ struct NoteEditorView: View {
 		}
 	}
     
-	// MARK: ACTIVE-STATE
+	// MARK: - Active State
     
 	private var isBold: Bool {
 		guard let font = selection.typingAttributes(in: text).font else { return false }
@@ -110,20 +110,24 @@ struct NoteEditorView: View {
 		selection.typingAttributes(in: text).strikethroughStyle != nil
 	}
     
-	// MARK: PERSISTENCE
+	// MARK: - Persistence
 	
-	/// <summary>True only when the buffer differs from what's stored</summary>
+	/// Whether the buffer differs from what's stored
 	private var bodyChanged: Bool {
 		text != note.content
 	}
 	
-	/// <summary>Commit the body buffer if it actually changed (save only; no discard)</summary>
+	/// Commits the buffer if changed; save only - never discards
+	///
+	/// - Note: Committed on exit/backgrounding rather than on change; writing
+	/// mid-edit republishes the parent's `@Query` and resets the selection
 	private func saveBody() {
 		guard bodyChanged else { return }
 		note.content = text
 		note.dateModified = .now
 	}
     
+	/// On exit: discard a never-touched blank note, otherwise commit
 	private func commitOrDiscard() {
 		let titleBlank = note.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 		let bodyBlank = String(text.characters).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

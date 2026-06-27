@@ -4,14 +4,14 @@
 //
 //  Created by Tristan Kriel on 2026/06/27.
 //
-//  Reusable visual building blocks for presenting notes: preview card, compact list row, waterfall and grid layouts
+//  Reusable visual building blocks for presenting notes: preview card, compact list row, waterfall and grid layout containers
 
 import SwiftData
 import SwiftUI
 
-// MARK: PREVIEW CARD
+// MARK: - Preview Card
 
-/// <summary>A single note preview: title + multi-line snippet</summary>
+/// A note preview: title over a multi-line snippet
 struct NotePreviewCard: View {
 	let note: Note
 
@@ -37,7 +37,7 @@ struct NotePreviewCard: View {
 		.clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
 	}
 
-	/// <summary>Favourite star on a gradient scrim</summary>
+	/// Favourite star over a gradient scrim
 	private var favouriteBadge: some View {
 		ZStack(alignment: .topTrailing) {
 			LinearGradient(
@@ -54,9 +54,9 @@ struct NotePreviewCard: View {
 	}
 }
 
-// MARK: LIST ROW
+// MARK: - List Row
 
-/// <summary>Compact one-line row for the list layout</summary>
+/// Compact one-line row for the list layout
 struct NoteListRow: View {
 	let note: Note
 
@@ -91,9 +91,9 @@ struct NoteListRow: View {
 	}
 }
 
-// MARK: WATERFALL LAYOUT
+// MARK: - Waterfall Layout
 
-/// <summary>Manual two-column "masonry" layout</summary>
+/// Manual two-column masonry layout
 struct NoteWaterfall: View {
 	let notes: [Note]
 	var columnCount: Int = 2
@@ -102,6 +102,7 @@ struct NoteWaterfall: View {
 	var selectedIDs: Set<Note.ID> = []
 	var onTap: (Note) -> Void = { _ in }
 
+	/// Notes distributed round-robin across columns
 	private var columns: [[Note]] {
 		var buckets = Array(repeating: [Note](), count: columnCount)
 		for (index, note) in notes.enumerated() {
@@ -128,9 +129,9 @@ struct NoteWaterfall: View {
 	}
 }
 
-// MARK: GRID LAYOUT
+// MARK: - Grid Layout
 
-/// <summary>Full-width cards stacked under date-section headers</summary>
+/// Full-width cards stacked under date-section headers
 struct NoteSectionedGrid: View {
 	let sections: [NoteSection]
 	var isSelecting: Bool = false
@@ -163,7 +164,7 @@ struct NoteSectionedGrid: View {
 	}
 }
 
-// MARK: PREVIEWS
+// MARK: - Previews
 
 #Preview("Card") {
 	NotePreviewCard(note: SampleData.sampleNotes[0])

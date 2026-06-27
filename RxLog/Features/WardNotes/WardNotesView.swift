@@ -8,12 +8,12 @@
 import SwiftData
 import SwiftUI
 
-/// <summary>Ward Notes home screen</summary>
+/// Ward Notes home screen: searchable, filterable notes with multi-select and three layouts
 struct WardNotesView: View {
 	@Environment(\.modelContext) private var modelContext
 	@Query private var allNotes: [Note]
     
-	// Presentation knobs
+	// Presentation
 	@AppStorage("wardNotesDisplayStyle") private var displayStyle: NoteDisplayStyle = .waterfall
 	@AppStorage("wardNotesSortOption") private var sortOption: NoteSortOption = .dateModified
 	@State private var searchText = ""
@@ -29,7 +29,7 @@ struct WardNotesView: View {
 	@State private var editingNote: Note?
     
 	var body: some View {
-		// Run filter -> sort -> section pipeline once per render
+		// Build selections once per render
 		let sections = NoteListPipeline.sections(
 			from: allNotes,
 			searchText: searchText,
@@ -69,7 +69,7 @@ struct WardNotesView: View {
 		}
 	}
     
-	// MARK: TOOLBAR
+	// MARK: - Toolbar
     
 	@ToolbarContentBuilder
 	private func toolbarContent(visibleNotes: [Note]) -> some ToolbarContent {
@@ -130,7 +130,7 @@ struct WardNotesView: View {
 		}
 	}
     
-	// MARK: CONTENT
+	// MARK: - Content
     
 	@ViewBuilder
 	private func content(sections: [NoteSection], visibleNotes: [Note]) -> some View {
@@ -186,10 +186,7 @@ struct WardNotesView: View {
 				if visibleNotes.isEmpty {
 					noResults
 				} else {
-					// LazyVStack + pinnedViews keeps headers sticky (like List did) while
-					// giving us full control of spacing — no opaque List section chrome.
-					// `spacing: 0` because each section owns its own internal padding, so
-					// every gap is identical for relative and month sections alike.
+					// Pinned headers + lazy rows
 					LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
 						ForEach(sections) { section in
 							Section {
@@ -205,8 +202,7 @@ struct WardNotesView: View {
 										.frame(maxWidth: .infinity, alignment: .leading)
 										.padding(.horizontal)
 										.padding(.vertical, 9)
-										// Frosted backing so rows stay legible scrolling under
-										// a pinned header. Falls back cleanly on any background.
+										// Frosted backing keeps pinned headers legible as rows scroll beneath
 										.background {
 											Color(.systemBackground).opacity(0.5)
 												.background(.ultraThinMaterial)
@@ -221,7 +217,7 @@ struct WardNotesView: View {
 		}
 	}
     
-	/// <summary>A list row with a leading selection circle while selecting</summary>
+	/// List row with a leading selection circle while selecting
 	private func listRow(_ note: Note) -> some View {
 		HStack(spacing: 12) {
 			if isSelecting {
@@ -234,7 +230,7 @@ struct WardNotesView: View {
 		.onTapGesture { handleTap(note) }
 	}
     
-	// MARK: SELECTION HELPERS
+	// MARK: - Selection Helpers
     
 	private var navTitle: String {
 		guard isSelecting else { return "Ward Notes" }
@@ -274,7 +270,7 @@ struct WardNotesView: View {
 		}
 	}
     
-	// MARK: BULK ACTIONS
+	// MARK: - Bulk Actions
     
 	private var selectedNotes: [Note] {
 		allNotes.filter { selectedNoteIDs.contains($0.id) }
@@ -308,7 +304,7 @@ struct WardNotesView: View {
 		setSelecting(false)
 	}
     
-	// MARK: REUSABLE PIECES
+	// MARK: - Subviews
     
 	private var searchBar: some View {
 		SearchBar(text: $searchText)
@@ -358,14 +354,14 @@ struct WardNotesView: View {
 		.accessibilityLabel("New Note")
 	}
     
-	/// Creates a blank note, inserts it, and opens the editor
+	/// Inserts a blank note and opens it in the editor
 	private func compose() {
 		let note = Note()
 		modelContext.insert(note)
 		editingNote = note
 	}
     
-	/// Options menu
+	/// Overflow menu: sort, layout, and stubbed export/stats
 	private var optionsMenu: some View {
 		Menu {
 			Picker("Sort By", selection: $sortOption) {
@@ -382,7 +378,7 @@ struct WardNotesView: View {
             
 			Divider()
             
-			// Stubs
+			// Not yet implemented
 			Button("Export", systemImage: "square.and.arrow.up") {}
 			Button("Stats", systemImage: "chart.bar") {}
 		} label: {

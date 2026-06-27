@@ -4,13 +4,14 @@
 //
 //  Created by Tristan Kriel on 2026/06/26.
 //
-// Logical core behind Ward Notes list (configuration, ordering, and dated sections)
+//	Value-layer for the Ward Notes list: display/sort options, filtering, and
+//	date-based sectioning. No SwiftUI or persistence dependencies.
 
 import Foundation
 
-// MARK: DISPLAY STYLE
+// MARK: - Display Style
 
-/// <summary>Which of the 3 layouts the list is currently rendered in</summary>
+/// The layout the list is rendered in
 enum NoteDisplayStyle: String, CaseIterable, Identifiable {
 	case waterfall
 	case grid
@@ -37,9 +38,9 @@ enum NoteDisplayStyle: String, CaseIterable, Identifiable {
 	}
 }
 
-// MARK: SORT OPTION
+// MARK: - Sort Option
 
-/// <summary>How the list is ordered and/or sectioned by date</summary>
+/// How the list is ordered and sectioned
 enum NoteSortOption: String, CaseIterable, Identifiable {
 	case dateModified
 	case dateCreated
@@ -59,7 +60,7 @@ enum NoteSortOption: String, CaseIterable, Identifiable {
 		}
 	}
     
-	/// <summary>The date this option sorts and sections by, or 'nil' for Title</summary>
+	/// Date the option sorts and sections by; `nil` for `.title`
 	var dateKeyPath: KeyPath<Note, Date>? {
 		switch self {
 		case .dateModified: \.dateModified
@@ -70,26 +71,26 @@ enum NoteSortOption: String, CaseIterable, Identifiable {
 	}
 }
 
-// MARK: FILTERING
+// MARK: - Filtering
 
-/// <summary>The active filter state in the Ward Notes list</summary>
+/// Active filter state for the list
 struct NoteFilter: Equatable {
 	var dateRange: DateRangeOption = .all
 	var favouritesOnly: Bool = false
     
-	/// <summary>Whether any non-default filter is applied</summary>
+	/// Whether any non-default filter is applied
 	var isActive: Bool {
 		dateRange != .all || favouritesOnly
 	}
     
-	/// <remarks>True if a note passes every active filter</remarks>
+	/// Whether `note` passes every active filter
 	func matches(_ note: Note, now: Date = .now, calendar: Calendar = .current) -> Bool {
 		if favouritesOnly && !note.isFavourite { return false }
 		return dateRange.contains(note.dateModified, now: now, calendar: calendar)
 	}
 }
 
-/// <summary>Preset date windows offered in the filter sheet</summary>
+/// Preset date windows offered in the filter sheet
 enum DateRangeOption: String, CaseIterable, Identifiable {
 	case all
 	case today
@@ -109,7 +110,7 @@ enum DateRangeOption: String, CaseIterable, Identifiable {
 		}
 	}
     
-	/// <summary>Whether 'date' falls inside this window relative to 'now'</summary>
+	/// Whether `date` falls within this window relative to `now`
 	func contains(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> Bool {
 		switch self {
 		case .all: return true
@@ -131,17 +132,19 @@ enum DateRangeOption: String, CaseIterable, Identifiable {
 	}
 }
 
-// MARK: SECTIONING
+// MARK: - Sectioning
 
-/// <summary>One dated group of notes; "title == nil" renders without a header</summary>
+/// A dated group of notes; A `nil` title renders without a header
 struct NoteSection: Identifiable {
 	let id: String
 	let title: String?
 	let notes: [Note]
 }
 
-/// <summary>Buckets notes into ordered dated sections</summary>
+/// Buckets notes into ordered, dated sections
 enum NoteSectioner {
+	/// Groups `notes` by date bucket (Today, Yesterday, Last 7/30 Days, then by month)
+	/// - Returns: Sections newest-first, each titled by its bucket
 	static func sections(
 		from notes: [Note],
 		by dateKeyPath: KeyPath<Note, Date> = \.dateModified
@@ -149,10 +152,9 @@ enum NoteSectioner {
 		let calendar = Calendar.current
 		let now = Date.now
         
-		// Newest first by chosen date
 		let sorted = notes.sorted { $0[keyPath: dateKeyPath] > $1[keyPath: dateKeyPath] }
         
-		// Group by bucket title
+		// Preserve first-seen bucket order while grouping
 		var order: [String] = []
 		var buckets: [String: [Note]] = [:]
 		for note in sorted {
@@ -166,7 +168,6 @@ enum NoteSectioner {
 		return order.map { NoteSection(id: $0, title: $0, notes: buckets[$0] ?? []) }
 	}
     
-	/// <summary>Maps a single date to its section title</summary>
 	private static func sectionTitle(for date: Date, now: Date, calendar: Calendar) -> String {
 		if calendar.isDateInToday(date) { return "Today" }
 		if calendar.isDateInYesterday(date) { return "Yesterday" }
@@ -190,10 +191,12 @@ enum NoteSectioner {
 	}
 }
 
-// MARK: PIPELINE
+// MARK: - Pipeline
 
-/// <summary>Single ordered transform from filter -> sort -> section</summary>
+/// Single transform from raw notes to display-ready sections
 enum NoteListPipeline {
+	/// Applies search and filtering, then sorts and sections
+	/// - Returns: Date-buckets sections for date sorts, or one untitled section for `.title`
 	static func sections(
 		from notes: [Note],
 		searchText: String,

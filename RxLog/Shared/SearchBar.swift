@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Glass-styled search field with an inline clear button
 struct SearchBar: View {
 	@Binding var text: String
 	var prompt: String = "Search notes"

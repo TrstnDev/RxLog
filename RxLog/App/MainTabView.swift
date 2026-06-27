@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-/// <summary>The app's root tab bar</summary>
+/// Root tab bar: Patients, Calculator, and Ward Notes
 struct MainTabView: View {
 	var body: some View {
 		TabView {

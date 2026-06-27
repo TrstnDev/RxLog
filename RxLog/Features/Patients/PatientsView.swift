@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Placeholder for the patient records feature
 struct PatientsView: View {
 	var body: some View {
 		NavigationStack {
