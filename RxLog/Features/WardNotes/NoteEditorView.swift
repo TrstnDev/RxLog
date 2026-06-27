@@ -10,14 +10,19 @@ import SwiftData
 
 struct NoteEditorView: View {
     
+	// MARK: DECLARATIONS
+	
     @Environment(\.modelContext) private var modelContext
     @Environment(\.fontResolutionContext) private var fontResolutionContext
+	@Environment(\.scenePhase) private var scenePhase
     
     @Bindable var note: Note
     
     @State private var text = AttributedString()
     @State private var selection = AttributedTextSelection()
     
+	// MARK: BODY
+	
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             TextField("Title", text: $note.title, axis: .vertical)
@@ -37,6 +42,9 @@ struct NoteEditorView: View {
 		.onAppear {
 			text = note.content
 			note.lastViewed = .now
+		}
+		.onChange(of: scenePhase) { _, phase in
+			if phase != .active { saveBody() }
 		}
 		.onDisappear { commitOrDiscard() }
         .toolbarVisibility(.hidden, for: .tabBar)
@@ -104,6 +112,18 @@ struct NoteEditorView: View {
     }
     
     // MARK: PERSISTENCE
+	
+	/// <summary>True only when the buffer differs from what's stored</summary>
+	private var bodyChanged: Bool {
+		text != note.content
+	}
+	
+	/// <summary>Commit the body buffer if it actually changed (save only; no discard)</summary>
+	private func saveBody() {
+		guard bodyChanged else { return }
+		note.content = text
+		note.dateModified = .now
+	}
     
 	private func commitOrDiscard() {
 		let titleBlank = note.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -111,8 +131,7 @@ struct NoteEditorView: View {
 		if titleBlank && bodyBlank {
 			modelContext.delete(note)
 		} else {
-			note.content = text
-			note.dateModified = .now
+			saveBody()
 		}
 	}
 }
