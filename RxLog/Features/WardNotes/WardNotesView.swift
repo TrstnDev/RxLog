@@ -14,8 +14,8 @@ struct WardNotesView: View {
     @Query private var allNotes: [Note]
     
     // Presentation knobs
-    @State private var displayStyle: NoteDisplayStyle = .waterfall
-    @State private var sortOption: NoteSortOption = .dateModified
+	@AppStorage("wardNotesDisplayStyle") private var displayStyle: NoteDisplayStyle = .waterfall
+    @AppStorage("wardNotesSortOption") private var sortOption: NoteSortOption = .dateModified
     @State private var searchText = ""
     @State private var filter = NoteFilter()
     @State private var showingFilter = false
@@ -182,31 +182,32 @@ struct WardNotesView: View {
             }
             
         case .list:
-            List {
-                searchBar
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                
-                if visibleNotes.isEmpty {
-                    noResults
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                } else {
-                    ForEach(sections) { section in
-                        Section {
-                            ForEach(section.notes) { note in
-                                listRow(note)
-                                    .listRowSeparator(.hidden)
-                            }
-                        } header: {
-                            if let title = section.title { Text(title) }
-                        }
-                        .listSectionSeparator(.hidden)
-                    }
-                }
-            }
-            .listStyle(.plain)
+			ScrollView {
+				searchBar
+				if visibleNotes.isEmpty {
+					noResults
+				} else {
+					LazyVStack(alignment: .leading, spacing: 25) {
+						ForEach(sections) { section in
+							VStack(alignment: .leading, spacing: 15) {
+								if let title = section.title {
+									Text(title)
+										.font(.subheadline.weight(.medium))
+										.foregroundStyle(.tertiary)
+										//.padding(.leading)
+								}
+								VStack(spacing: 25) {
+									ForEach(section.notes) { note in
+										listRow(note)
+									}
+								}
+							}
+						}
+					}
+					.padding(.horizontal)
+					.padding(.top, 8)
+				}
+			}
             
         }
     }
