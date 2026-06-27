@@ -7,19 +7,19 @@
 
 import SwiftUI
 
-struct CalculatorView : View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "Calculators Coming Soon",
-                systemImage: "function",
-                description: Text("Clinical calculators will live here.")
-            )
-            .navigationTitle("Calculator")
-        }
-    }
+struct CalculatorView: View {
+	var body: some View {
+		NavigationStack {
+			ContentUnavailableView(
+				"Calculators Coming Soon",
+				systemImage: "function",
+				description: Text("Clinical calculators will live here.")
+			)
+			.navigationTitle("Calculator")
+		}
+	}
 }
 
 #Preview {
-    CalculatorView()
+	CalculatorView()
 }

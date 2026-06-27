@@ -8,18 +8,18 @@
 import SwiftUI
 
 struct PatientsView: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-            "No Patients Yet",
-            systemImage: "person.2.fill",
-            description: Text("Patient records will appear here.")
-            )
-            .navigationTitle("Patients")
-        }
-    }
+	var body: some View {
+		NavigationStack {
+			ContentUnavailableView(
+				"No Patients Yet",
+				systemImage: "person.2.fill",
+				description: Text("Patient records will appear here.")
+			)
+			.navigationTitle("Patients")
+		}
+	}
 }
 
 #Preview {
-    PatientsView()
+	PatientsView()
 }

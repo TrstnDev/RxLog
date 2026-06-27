@@ -5,28 +5,28 @@
 //  Created by Tristan Kriel on 2026/06/24.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 /// <summary>The app's root tab bar</summary>
 struct MainTabView: View {
-    var body: some View {
-        TabView {
-            Tab("Patients", systemImage: "person.2.fill") {
-                PatientsView()
-            }
-            Tab("Calculator", systemImage: "function") {
-                CalculatorView()
-            }
-            Tab("Ward Notes", systemImage: "note.text") {
-                WardNotesView()
-            }
-        }
-        .tabBarMinimizeBehavior(.onScrollDown)
-    }
+	var body: some View {
+		TabView {
+			Tab("Patients", systemImage: "person.2.fill") {
+				PatientsView()
+			}
+			Tab("Calculator", systemImage: "function") {
+				CalculatorView()
+			}
+			Tab("Ward Notes", systemImage: "note.text") {
+				WardNotesView()
+			}
+		}
+		.tabBarMinimizeBehavior(.onScrollDown)
+	}
 }
 
 #Preview {
-    MainTabView()
-        .modelContainer(SampleData.previewContainer)
+	MainTabView()
+		.modelContainer(SampleData.previewContainer)
 }
