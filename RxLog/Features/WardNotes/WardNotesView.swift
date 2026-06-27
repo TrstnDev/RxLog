@@ -181,34 +181,45 @@ struct WardNotesView: View {
                 }
             }
             
-        case .list:
+		case .list:
 			ScrollView {
 				searchBar
 				if visibleNotes.isEmpty {
 					noResults
 				} else {
-					LazyVStack(alignment: .leading, spacing: 25) {
+						// LazyVStack + pinnedViews keeps headers sticky (like List did) while
+						// giving us full control of spacing — no opaque List section chrome.
+						// `spacing: 0` because each section owns its own internal padding, so
+						// every gap is identical for relative and month sections alike.
+					LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
 						ForEach(sections) { section in
-							VStack(alignment: .leading, spacing: 15) {
+							Section {
+								ForEach(section.notes) { note in
+									listRow(note)
+										.padding(.horizontal)
+								}
+							} header: {
 								if let title = section.title {
 									Text(title)
-										.font(.subheadline.weight(.medium))
-										.foregroundStyle(.tertiary)
-										//.padding(.leading)
-								}
-								VStack(spacing: 25) {
-									ForEach(section.notes) { note in
-										listRow(note)
-									}
+										.font(.headline.weight(.semibold))
+										.foregroundStyle(.secondary)
+										.frame(maxWidth: .infinity, alignment: .leading)
+										.padding(.horizontal)
+										.padding(.vertical, 9)
+										// Frosted backing so rows stay legible scrolling under
+										// a pinned header. Falls back cleanly on any background.
+										.background {
+											Color(.systemBackground).opacity(0.5)
+												.background(.ultraThinMaterial)
+										}
 								}
 							}
 						}
 					}
-					.padding(.horizontal)
-					.padding(.top, 8)
 				}
 			}
-            
+			.scrollDismissesKeyboard(.immediately)
+				
         }
     }
     

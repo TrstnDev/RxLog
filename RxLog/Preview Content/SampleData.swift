@@ -79,9 +79,15 @@ enum SampleData {
             Note(
                 title: "The 5Ps of Compartment Syndrome",
                 content: AttributedString("Pain, Paresthesia, Pallor, Pulselessness, and Paralysis. Do not wait for all 5 signs before intervening - if all 5 are present it is usually already advanced and tissue necrosis is imminent or already present!"),
-                dateCreated: daysAgo(2), dateModified: daysAgo(0), lastViewed: daysAgo(1),
+                dateCreated: daysAgo(47), dateModified: daysAgo(0), lastViewed: daysAgo(1),
                 isFavourite: true
-            )
+            ),
+			Note(
+				title: "Congestive heart failure patient",
+				content: AttributedString("Started on lasix and beta-blockers - monitor progress."),
+				dateCreated: daysAgo(65), dateModified: daysAgo(0), lastViewed: daysAgo(1),
+				isFavourite: true
+			)
         ]
     }
     
