@@ -136,7 +136,7 @@ struct WardNotesView: View {
 	private func content(sections: [NoteSection], visibleNotes: [Note]) -> some View {
 		if allNotes.isEmpty {
 			ContentUnavailableView {
-				Label("No Notes Yet", systemImage: "note.Text")
+				Label("No Notes Yet", systemImage: "note.text")
 			} description: {
 				Text("Your ward notes will appear here.")
 			}

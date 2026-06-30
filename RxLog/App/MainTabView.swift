@@ -8,18 +8,21 @@
 import SwiftData
 import SwiftUI
 
-/// Root tab bar: Patients, Calculator, and Ward Notes
+/// Root tab bar: Patients, Calculator, Ward Notes, and Preferences
 struct MainTabView: View {
 	var body: some View {
 		TabView {
-			Tab("Patients", systemImage: "person.2.fill") {
+			Tab("Patients", systemImage: "person.3.fill") {
 				PatientsView()
 			}
-			Tab("Calculator", systemImage: "function") {
+			Tab("Calculators", systemImage: "function") {
 				CalculatorView()
 			}
 			Tab("Ward Notes", systemImage: "note.text") {
 				WardNotesView()
+			}
+			Tab("Preferences", systemImage: "slider.vertical.3") {
+				PreferencesView()
 			}
 		}
 		.tabBarMinimizeBehavior(.onScrollDown)
