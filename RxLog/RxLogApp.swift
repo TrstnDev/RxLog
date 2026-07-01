@@ -15,6 +15,6 @@ struct RxLogApp: App {
 		WindowGroup {
 			RootView()
 		}
-		.modelContainer(for: Note.self)
+		.modelContainer(for: [Note.self, Patient.self])
 	}
 }

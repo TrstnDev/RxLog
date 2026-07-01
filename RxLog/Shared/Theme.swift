@@ -13,7 +13,7 @@ import SwiftUI
 /// The app's named gradients, each backed one-to-one by a namespaced colour pair in the asset catalogue: `Gradients/<RawValue>/Start` and `Gradients/<RawValue>/End`
 ///
 /// `accent` is the reserved brand gradient; the remaining cases form the patient-profile palette
-enum AppGradient: String, CaseIterable, Identifiable {
+enum AppGradient: String, CaseIterable, Identifiable, Codable {
 	case accent 	= "AccentGradient"
 	case berry 		= "Berry"
 	case mist		= "Mist"
