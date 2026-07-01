@@ -13,8 +13,11 @@ import SwiftUI
 /// A de-identified patient profile: an alias, an avatar (glyph + gradient), and a retention window
 @Model
 final class Patient {
-	/// Alias as JSON-encoded `Data`; backing store for ``alias``
+	
+	/// JSON-encoded `Data`; backing store for values
 	private var aliasData: Data
+	private var demographicsData: Data?
+	
 	
 	var glyph: AvatarGlyph
 	var gradient: AppGradient
@@ -27,14 +30,27 @@ final class Patient {
 		set { aliasData = Patient.encode(newValue) }
 	}
 	
+	/// Typed façade over ``demographicsData``
+	var demographics: PatientDemographics {
+		get {
+			guard let demographicsData,
+				  let value = try? JSONDecoder().decode(PatientDemographics.self, from: demographicsData)
+			else { return PatientDemographics() }
+			return value
+		}
+		set { demographicsData = try? JSONEncoder().encode(newValue) }
+	}
+	
 	init(
 		alias: PatientAlias,
 		glyph: AvatarGlyph,
 		gradient: AppGradient,
+		demographics: PatientDemographics = PatientDemographics(),
 		createdAt: Date = .now,
 		expiresAt: Date? = nil
 	) {
 		self.aliasData = Patient.encode(alias)
+		self.demographicsData = try? JSONEncoder().encode(demographics)
 		self.glyph = glyph
 		self.gradient = gradient
 		self.createdAt = createdAt
