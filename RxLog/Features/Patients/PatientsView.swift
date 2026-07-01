@@ -6,21 +6,251 @@
 //
 
 import SwiftUI
+import SwiftData
 
-/// Placeholder for the patient records feature
+/// Patients tab entry point
+///
+/// Gates the feature behind the one-time regulatory declaration, then shows the patient list
 struct PatientsView: View {
+	@AppStorage(PatientConsent.acceptedVersionKey) private var acceptedVersion = 0
+	@AppStorage(PatientConsent.acceptedDateKey) private var acceptedDateISO = ""
+	
+	/// Whether the user has accepted the declaration version currently in force
+	private var hasAcceptedCurrentTerms: Bool {
+		acceptedVersion >= PatientConsent.currentVersion
+	}
+	
 	var body: some View {
-		NavigationStack {
-			ContentUnavailableView(
-				"No Patients Yet",
-				systemImage: "person.2.fill",
-				description: Text("Patient records will appear here.")
-			)
-			.navigationTitle("Patients")
+		ZStack {
+			if hasAcceptedCurrentTerms {
+				PatientsHome()
+					.transition(.opacity)
+			} else {
+				PatientGateView(onAccept: recordAcceptance)
+					.transition(.opacity)
+			}
+		}
+	}
+	
+	/// Persists acceptance of the current declaration, then reveals the feature
+	private func recordAcceptance() {
+		acceptedDateISO = ISO8601DateFormatter().string(from: .now)
+		withAnimation(.bouncy(duration: 0.5)) {
+			acceptedVersion = PatientConsent.currentVersion
 		}
 	}
 }
 
-#Preview {
+// MARK: - Home
+
+/// The patient overview: a two-column grid of profile cards
+///
+/// Expired profiles are swept on appear (data minimisation), so the grid only shows profiles still inside their retention window
+private struct PatientsHome: View {
+	@Environment(\.modelContext) private var modelContext
+	@Query(sort: \Patient.createdAt, order: .reverse) private var patients: [Patient]
+	
+	@State private var isSelecting = false
+	@State private var selection = Set<Patient.ID>()
+	@State private var sortOption: SortOption = .recentlyAdded
+	
+	private let columns = [
+		GridItem(.flexible(), spacing: 16),
+		GridItem(.flexible(), spacing: 16)
+	]
+	
+	/// The grid's ordering options
+	private enum SortOption: String, CaseIterable, Identifiable {
+		case recentlyAdded = "Recently Added"
+		case expiringSoon = "Expiring Soon"
+		case name = "Name"
+		var id: String { rawValue }
+	}
+	
+	/// Profiles ordered by the current sort choice
+	private var sortedPatients: [Patient] {
+		switch sortOption {
+		case .recentlyAdded: patients.sorted { $0.createdAt > $1.createdAt }
+		case .expiringSoon: patients.sorted { $0.expiresAt < $1.expiresAt }
+		case .name: patients.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+		}
+	}
+	
+	var body: some View {
+		NavigationStack {
+			content
+				.navigationTitle("Patients")
+				.toolbar { toolbarContent }
+				.overlay(alignment: .bottomTrailing) {
+					if !isSelecting {
+						addButton
+							.padding(15)
+							.transition(.scale.combined(with: .opacity))
+					}
+				}
+				.animation(.snappy, value: isSelecting)
+		}
+		.onAppear(perform: sweepExpired)
+	}
+	
+	// MARK: Content
+	
+	@ViewBuilder private var content: some View {
+		if patients.isEmpty {
+			ContentUnavailableView(
+				"No Patients Yet",
+				systemImage: "person.2.fill",
+				description: Text("Tap the button below to add a patient profile.")
+			)
+		} else {
+			ScrollView {
+				LazyVGrid(columns: columns, spacing: 16) {
+					ForEach(sortedPatients) { patient in
+						card(for: patient)
+					}
+				}
+				.padding()
+			}
+		}
+	}
+	
+	private func card(for patient: Patient) -> some View {
+		PatientCard(patient: patient)
+			.overlay(alignment: .topTrailing) {
+				if isSelecting {
+					Image(systemName: selection.contains(patient.id) ? "checkmark.circle.fill" : "circle")
+						.font(.title2)
+						.foregroundStyle(.white)
+						.opacity(selection.contains(patient.id) ? 1 : 0.7)
+						.padding(10)
+				}
+			}
+			.onTapGesture {
+				if isSelecting { toggleSelection(patient) }
+			}
+			.contextMenu {
+				if !isSelecting {
+					Button(role: .destructive) {
+						modelContext.delete(patient)
+					} label: {
+						Label("Delete", systemImage: "trash")
+					}
+				}
+			}
+	}
+	
+	// MARK: Toolbar
+	
+	@ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
+		ToolbarItem(placement: .topBarLeading) {
+			Button(isSelecting ? "Done" : "Select") {
+				withAnimation(.snappy) {
+					if isSelecting { selection.removeAll() }
+					isSelecting.toggle()
+				}
+			}
+			.disabled(patients.isEmpty && !isSelecting)
+		}
+		
+		if isSelecting {
+			ToolbarItem(placement: .topBarTrailing) {
+				Button(role: .destructive, action: deleteSelected) {
+					Image(systemName: "trash")
+				}
+				.disabled(selection.isEmpty)
+			}
+		} else {
+			ToolbarItemGroup(placement: .topBarTrailing) {
+				Menu {
+					Picker("Sort", selection: $sortOption) {
+						ForEach(SortOption.allCases) { Text($0.rawValue).tag($0) }
+					}
+				} label: {
+					Image(systemName: "line.3.horizontal.decrease")
+				}
+				
+				Button {
+					// TODO: present the quick-add log flow once log model exists
+				} label: {
+					Image(systemName: "pencil.and.list.clipboard")
+				}
+				.buttonStyle(.glassProminent)
+				.accessibilityLabel("Quick add a history or examination")
+			}
+		}
+	}
+	
+	/// Floating action button for adding a patient
+	private var addButton: some View {
+		Button(action: addPatient) {
+			Image(systemName: "person.fill.badge.plus")
+				.font(.title2)
+				.fontWeight(.bold)
+				.frame(width: 45, height: 45)
+		}
+		.buttonStyle(.glassProminent)
+		.buttonBorderShape(.circle)
+		.accessibilityLabel("Add new Patient")
+	}
+	
+	// MARK: Actions
+	
+	/// Permanently deletes profiles past their expiry; runs on tab open, per retention policy
+	private func sweepExpired() {
+		for patient in patients where patient.isExpired {
+			modelContext.delete(patient)
+		}
+	}
+	
+	private func toggleSelection(_ patient: Patient) {
+		if selection.contains(patient.id) {
+			selection.remove(patient.id)
+		} else {
+			selection.insert(patient.id)
+		}
+	}
+	
+	private func deleteSelected() {
+		for patient in patients where selection.contains(patient.id) {
+			modelContext.delete(patient)
+		}
+		withAnimation(.snappy) {
+			selection.removeAll()
+			isSelecting = false
+		}
+	}
+	
+	/// TEMPORARY: inserts random profile so grid is testable
+	private func addPatient() {
+		let aliases: [PatientAlias] = [
+			.character(["X", "Y", "Z", "A", "B"].randomElement()!, script: .latin),
+			.wardBed(ward: .random(in: 1...20), bed: .random(in: 1...40)),
+			.pseudonym(
+				first: ["John", "Jane", "Sam", "Richard"].randomElement()!,
+				last: ["Doe", "Apple", "Smith", "White"].randomElement()!
+			)
+		]
+		let patient = Patient(
+			alias: aliases.randomElement()!,
+			glyph: AvatarGlyph.allCases.randomElement()!,
+			gradient: AppGradient.patientPalette.randomElement()!
+		)
+		modelContext.insert(patient)
+	}
+}
+
+#Preview("Coordinator") {
 	PatientsView()
+}
+
+#Preview("Overview") {
+	let container = try! ModelContainer(
+		for: Patient.self,
+		configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+	)
+	for patient in Patient.samples {
+		container.mainContext.insert(patient)
+	}
+	return PatientsHome()
+		.modelContainer(container)
 }
