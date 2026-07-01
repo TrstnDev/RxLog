@@ -47,7 +47,7 @@ struct SplashView: View {
     
 	var body: some View {
 		ZStack {
-			Theme.brandGradient
+			AppGradient.accent.linear()
 				.ignoresSafeArea()
             
 			Image(systemName: "pills.fill")

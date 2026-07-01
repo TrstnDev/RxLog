@@ -137,7 +137,7 @@ struct PatientGateView: View {
 		VStack(alignment: .leading, spacing: 16) {
 			Image(systemName: "person.crop.rectangle.stack.fill")
 				.font(.system(size: 96, weight: .semibold))
-				.foregroundStyle(Theme.brandGradient)
+				.foregroundStyle(.app(.accent))
 			
 			VStack(alignment: .leading, spacing: 0) {
 				Text("Welcome to")
@@ -198,6 +198,7 @@ private struct GatePaneView: View {
 				HStack(spacing: 10) {
 					Image(systemName: icon)
 						.font(.title2)
+						.fontWeight(.semibold)
 						.foregroundStyle(Color.accent)
 					Text(heading)
 						.font(.title3)
@@ -217,7 +218,7 @@ private struct GatePaneView: View {
 					Image(systemName: "arrow.right.circle.fill")
 						.font(.body)
 						.foregroundStyle(.primary)
-					(Text(bullet.lead).fontWeight(.semibold) + Text(" " + bullet.detail))
+					Text("\(Text(bullet.lead).fontWeight(.semibold)) \(bullet.detail)")
 						.font(.body)
 						.foregroundStyle(.primary)
 						.fixedSize(horizontal: false, vertical: true)
@@ -225,8 +226,74 @@ private struct GatePaneView: View {
 			}
 			
 			if let footnote = pane.footnote {
-				(Text(footnote + " ").foregroundStyle(.secondary))
+				Text("\(footnote) \(Text("\u{2192}").foregroundStyle(Color.accent))")
+					.font(.callout)
+					.foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
 			}
+			
+			Spacer(minLength: 0)
 		}
+		.frame(maxWidth: .infinity, alignment: .leading)
+		.padding(.horizontal, 30)
+		.padding(.top, 24)
 	}
+}
+
+// MARK: - Legal Declaration
+
+/// Modal declaration the user must explicitly accept
+///
+/// ``onAgree`` fires only on acceptance; dismissing by any other means leaves consent unrecorded
+private struct LegalDeclarationSheet: View {
+	var onAgree: () -> Void
+	@Environment(\.dismiss) private var dismiss
+	
+	var body: some View {
+		VStack(alignment: .leading, spacing: 0) {
+			ScrollView {
+				VStack(alignment: .leading, spacing: 20) {
+					Text("Legal Declaration")
+						.font(.title2)
+						.fontWeight(.bold)
+					
+					Text("By tapping \"I Agree & Accept Liability\", you explicitly declare and agree to the following:")
+					
+					Text("1. I will utilise this feature in strict compliance with the Protection of Personal Information Act (POPIA) and the HPCSA Guidelines on Patient Confidentiality and Record Keeping.")
+					
+					Text("2. I acknowledge that I am solely, legally, and professionally liable for any misuse, data leakage due to device insecurity, or transgression of HPCSA and POPIA guidelines resulting from my usage of this application.")
+					
+					Text("The developers of this application accept zero liability for user-end non-compliance.")
+						.foregroundStyle(.secondary)
+				}
+				.padding(.horizontal, 24)
+				.padding(.top, 28)
+			}
+			
+			VStack(spacing: 12) {
+				Button(action: onAgree) {
+					Text("I Agree & Accept Liability")
+						.fontWeight(.semibold)
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(.glassProminent)
+				.tint(.accent)
+				.controlSize(.large)
+				
+				Button(role: .cancel) { dismiss() } label: {
+					Text("Cancel")
+						.frame(maxWidth: .infinity)
+				}
+				.buttonStyle(.glass)
+				.tint(.red)
+				.controlSize(.large)
+			}
+			.padding(24)
+		}
+		.presentationDetents([.large])
+	}
+}
+
+#Preview {
+	PatientGateView(onAccept: {})
 }
