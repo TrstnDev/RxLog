@@ -138,6 +138,7 @@ struct PatientGateView: View {
 			Image(systemName: "person.crop.rectangle.stack.fill")
 				.font(.system(size: 96, weight: .semibold))
 				.foregroundStyle(.app(.accent))
+				.symbolEffect(.bounce, options: .repeat(.periodic(delay: 10)))
 			
 			VStack(alignment: .leading, spacing: 0) {
 				Text("Welcome to")
