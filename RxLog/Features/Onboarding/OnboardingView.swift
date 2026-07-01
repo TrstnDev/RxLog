@@ -140,7 +140,8 @@ private struct PaneView: View {
 			VStack(spacing: 28) {
 				Image(systemName: page.symbol)
 					.font(.system(size: 150, weight: .semibold))
-					.foregroundStyle(Theme.brandGradient)
+					//.foregroundStyle(Theme.brandGradient)
+					.foregroundStyle(Theme.)
 					.frame(height: 180)
 					.frame(maxWidth: .infinity)
 					.scrollTransition(.animated(.bouncy(duration: 0.4)), axis: .horizontal) { content, phase in
