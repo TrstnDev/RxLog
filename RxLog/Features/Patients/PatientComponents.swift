@@ -14,6 +14,7 @@ import SwiftUI
 /// Sizes to its container; used on overview card and profile header
 struct PatientAvatar: View {
 	let glyph: AvatarGlyph
+	var size: CGFloat = 100
 	
 	/// White fill with vertical opacity fade
 	private var gloss: LinearGradient {
@@ -34,6 +35,7 @@ struct PatientAvatar: View {
 		Image(systemName: glyph.symbolName)
 			.resizable()
 			.scaledToFit()
+			.frame(width: size, height: size)
 			.foregroundStyle(gloss)
 			.shadow(color: .black.opacity(0.15), radius: 7, y: 4)
 	}
@@ -57,9 +59,8 @@ struct PatientCard: View {
 			)
 			.overlay {
 				VStack(alignment: .leading, spacing: 6) {
-					PatientAvatar(glyph: patient.glyph)
+					PatientAvatar(glyph: patient.glyph, size: 100)
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
-						.padding(.top, 4)
 					
 					Text(patient.displayName)
 						.font(.system(size: 15, weight: .heavy, design: .serif))

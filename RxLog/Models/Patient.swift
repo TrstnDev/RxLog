@@ -55,7 +55,7 @@ final class Patient {
 // MARK: - Alias
 
 /// A patient's alias, captured by one of three prescribed de-identification methods
-enum PatientAlias: Codable, Hashable {
+nonisolated enum PatientAlias: Codable, Hashable {
 	/// Capitalised Latin or lowercase Greek character, e.g., "Patient X" or "Patient β"
 	case character(String, script: Script)
 	
@@ -65,7 +65,7 @@ enum PatientAlias: Codable, Hashable {
 	/// A pre-populated pseudonym, e.g., "John Doe"
 	case pseudonym(first: String, last: String)
 	
-	enum Script: String, Codable, Hashable, CaseIterable {
+	nonisolated enum Script: String, Codable, Hashable, CaseIterable {
 		case latin, greek
 	}
 	
@@ -85,7 +85,7 @@ enum PatientAlias: Codable, Hashable {
 // MARK: - Avatar Glyph
 
 /// The SF Symbol shapes offered for a patient avatar
-enum AvatarGlyph: String, CaseIterable, Identifiable, Codable {
+nonisolated enum AvatarGlyph: String, CaseIterable, Identifiable, Codable {
 	case circle                 	= "circle.fill"
 	case square                 	= "square.fill"
 	case app                    	= "app.fill"
@@ -124,7 +124,7 @@ extension Patient {
 	static var samples: [Patient] {
 		[
 			Patient(alias: .pseudonym(first: "John", last: "Apple"), glyph: .seal, gradient: .berry),
-			Patient(alias: .pseudonym(first: "Jane", last: "Doe"), glyph: .buttonRoundedBottom, gradient: .dusk),
+			Patient(alias: .pseudonym(first: "Jane", last: "Doe"), glyph: .circle, gradient: .dusk),
 			Patient(alias: .wardBed(ward: 5, bed: 10), glyph: .hexagon, gradient: .mandarin),
 			Patient(alias: .character("Y", script: .latin), glyph: .buttonAngledTopRight, gradient: .jade)
 		]
