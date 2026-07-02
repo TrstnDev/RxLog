@@ -107,7 +107,7 @@ struct PatientCreationView: View {
 			}
 			.coordinateSpace(.named("glyphStrip"))
 			.scrollTargetBehavior(.viewAligned)
-			.scrollPosition(id: $centredGlyph)
+			.scrollPosition(id: $centredGlyph, anchor: .center)
 			.contentMargins(.horizontal, centre - glyphSize / 2, for: .scrollContent)
 			.scrollIndicators(.hidden)
 		}
@@ -144,8 +144,54 @@ struct PatientCreationView: View {
 	
 	private var sections: some View {
 		VStack(spacing: 0) {
-			
+			sectionRow("Alias")
+			Divider().padding(.leading, 20)
+			sectionRow("Age")
+			Divider().padding(.leading, 20)
+			sectionRow("Sex & Gender Expression")
+			Divider().padding(.leading, 20)
+			sectionRow("HIV Status")
 		}
+		.background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
 	}
 	
+	private func sectionRow(_ title: String) -> some View {
+		HStack {
+			Text(title)
+			Spacer()
+			Image(systemName: "chevron.down")
+				.font(.footnote.weight(.semibold))
+		}
+		.foregroundStyle(.secondary)
+		.padding(.horizontal, 20)
+		.padding(.vertical, 18)
+		.contentShape(Rectangle())
+	}
+	
+	// MARK: Save
+	
+	private func save() {
+		let patient = Patient(alias: alias, glyph: glyph, gradient: gradient, demographics: demographics)
+		modelContext.insert(patient)
+		dismiss()
+	}
+}
+
+// MARK: - Pointer Shape
+
+/// A small upward-pointing triangle used as the panel's pointer toward the glyph
+private struct UpwardPointer: Shape {
+	func path(in rect: CGRect) -> Path {
+		var path = Path()
+		path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+		path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+		path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+		path.closeSubpath()
+		return path
+	}
+}
+
+#Preview {
+	PatientCreationView()
+		.modelContainer(for: Patient.self, inMemory: true)
 }
