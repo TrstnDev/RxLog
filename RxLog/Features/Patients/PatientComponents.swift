@@ -43,9 +43,14 @@ struct PatientAvatar: View {
 
 // MARK: - Card
 
-/// A patient's overview tile
+/// A patient's gradient tile
+///
+/// Drives from a `Patient` via the convenience initialiser
 struct PatientCard: View {
-	let patient: Patient
+	let glyph: AvatarGlyph
+	let gradient: AppGradient
+	var label: String? = nil
+	var glyphSize: CGFloat = 100
 	
 	/// White alias text with a subtle top-to-bottom opacity fade
 	private var labelStyle: LinearGradient {
@@ -55,26 +60,35 @@ struct PatientCard: View {
 	var body: some View {
 		RoundedRectangle(cornerRadius: 30, style: .continuous)
 			.fill(
-				patient.gradient.linear()
+				gradient.linear()
 			)
 			.overlay {
-				VStack(alignment: .leading, spacing: 6) {
-					PatientAvatar(glyph: patient.glyph, size: 100)
+				VStack(spacing: 6) {
+					PatientAvatar(glyph: glyph, size: glyphSize)
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
 					
-					Text(patient.displayName)
-						.font(.system(size: 15, weight: .heavy, design: .serif))
-						.italic()
-						.tracking(0.86)
-						.foregroundStyle(labelStyle)
-						.lineLimit(1)
-						.minimumScaleFactor(0.7)
-						.frame(maxWidth: .infinity, alignment: .center)
+					if let label {
+						Text(label)
+							.font(.system(size: 15, weight: .heavy, design: .serif))
+							.italic()
+							.tracking(0.86)
+							.foregroundStyle(labelStyle)
+							.lineLimit(1)
+							.minimumScaleFactor(0.7)
+							.frame(maxWidth: .infinity, alignment: .leading)
+					}
 				}
 				.padding(18)
 			}
 			.aspectRatio(1, contentMode: .fit)
 			.shadow(color: .black.opacity(0.25), radius: 4, y: 4)
+	}
+}
+
+extension PatientCard {
+	/// Builds a card from a stored patient, showing its alias label
+	init(patient: Patient) {
+		self.init(glyph: patient.glyph, gradient: patient.gradient, label: patient.displayName)
 	}
 }
 
