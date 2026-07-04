@@ -20,12 +20,13 @@ struct PatientCreationView: View {
 	
 	@State private var alias: PatientAlias = .character("A", script: .latin)
 	@State private var demographics = PatientDemographics()
+	@State private var aliasExpanded = true
 	
 	var body: some View {
 		NavigationStack {
 			ScrollView {
 				VStack(spacing: 22) {
-					VStack(spacing: 12) {
+					VStack(spacing: 8) {
 						PatientCard(glyph: glyph, gradient: gradient, glyphSize: 100)
 							.frame(width: 180, height: 180)
 							.padding(.top, 8)
@@ -80,7 +81,8 @@ struct PatientCreationView: View {
 					.fill(option.linear())
 					.overlay {
 						if isSelected {
-							Circle().stroke(.white, lineWidth: 3)
+							Circle()
+								.strokeBorder(.white, lineWidth: 3)
 						}
 					}
 			}
@@ -89,18 +91,21 @@ struct PatientCreationView: View {
 		.padding(.bottom, 20)
 		.padding(.horizontal, 4)
 		.background {
-			NotchedPanel(cornerRadius: 28, pointerWidth: 44, pointerHeight: 12, tipRadius: 6)
+			NotchedPanel(cornerRadius: 28, pointerWidth: 30, pointerHeight: 13, tipRadius: 5)
 				.fill(
 					Color(.secondarySystemBackground)
-						.shadow(.drop(color: .black.opacity(0.12), radius: 8, y: 4))
-						.shadow(.inner(color: .black.opacity(0.10), radius: 3, y: 2))
+						.shadow(.inner(color: .black.opacity(0.22), radius: 5, y: 2))
 				)
 		}
 		.onChange(of: scrolledGlyph) { _, newValue in
-			if let newValue { glyph = newValue }
+			if let newValue {
+				withAnimation(.easeInOut(duration: 0.2)) { glyph = newValue }
+			}
 		}
 		.onChange(of: scrolledGradient) { _, newValue in
-			if let newValue { gradient = newValue }
+			if let newValue {
+				withAnimation(.easeInOut(duration: 0.2)) { gradient = newValue }
+			}
 		}
 	}
 	
@@ -108,7 +113,9 @@ struct PatientCreationView: View {
 	
 	private var sections: some View {
 		VStack(spacing: 0) {
-			sectionRow("Alias")
+			DisclosureSection(title: "Alias", isExpanded: $aliasExpanded) {
+				AliasEditor(alias: $alias)
+			}
 			Divider().padding(.leading, 20)
 			sectionRow("Age")
 			Divider().padding(.leading, 20)
@@ -123,7 +130,7 @@ struct PatientCreationView: View {
 		HStack {
 			Text(title)
 			Spacer()
-			Image(systemName: "chevron.down")
+			Image(systemName: "chevron.right")
 				.font(.footnote.weight(.semibold))
 		}
 		.foregroundStyle(.secondary)
@@ -152,12 +159,10 @@ private struct CarouselPicker<Item: Hashable, Content: View>: View {
 	// Draws each item
 	@ViewBuilder let content: (_ item: Item, _ isSelected: Bool) -> Content
 	
-	// Coordinate-space name for the track
-	private static var trackSpace: String { "carousel.track" }
-	
 	var body: some View {
 		GeometryReader { proxy in
-			let centre = proxy.size.width / 2
+			let sideInset = proxy.size.width / 2 - itemSize / 2
+			let containerWidth = proxy.size.width
 			let falloff = (itemSize + spacing) * 2
 			
 			ScrollView(.horizontal) {
@@ -166,8 +171,10 @@ private struct CarouselPicker<Item: Hashable, Content: View>: View {
 						content(item, item == selection)
 							.frame(width: itemSize, height: itemSize)
 							.visualEffect { view, geometry in
-								let itemCentre = geometry.frame(in: .named(Self.trackSpace)).midX
-								let t = min(abs(itemCentre - centre) / falloff, 1)
+								let viewportWidth = geometry.bounds(of: .scrollView)?.width ?? containerWidth
+								let centre = viewportWidth / 2
+								let itemMidX = geometry.frame(in: .scrollView).midX
+								let t = min(abs(itemMidX - centre) / falloff, 1)
 								return view
 									.scaleEffect(1 - t * 0.45)
 									.opacity(1 - t * 0.6)
@@ -176,10 +183,9 @@ private struct CarouselPicker<Item: Hashable, Content: View>: View {
 				}
 				.scrollTargetLayout()
 			}
-			.coordinateSpace(.named(Self.trackSpace))
-			.scrollTargetBehavior(.viewAligned)
+			.scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByFew, anchor: .center))
 			.scrollPosition(id: $selection, anchor: .center)
-			.contentMargins(.horizontal, centre - itemSize / 2, for: .scrollContent)
+			.safeAreaPadding(.horizontal, sideInset)
 			.scrollIndicators(.hidden)
 		}
 		.frame(height: itemSize)
@@ -221,6 +227,42 @@ private struct NotchedPanel: Shape {
 		path.addArc(tangent1End: bodyTopLeft, tangent2End: baseLeft, radius: r)              // TL corner
 		path.closeSubpath()
 		return path
+	}
+}
+
+// MARK: - Disclosure Section
+
+/// Collapsible section: tappable header with chevron revealing its content
+private struct DisclosureSection<Content: View>: View {
+	let title: String
+	@Binding var isExpanded: Bool
+	@ViewBuilder var content: () -> Content
+	
+	var body: some View {
+		VStack(spacing: 0) {
+			Button {
+				withAnimation(.snappy) { isExpanded.toggle() }
+			} label: {
+				HStack {
+					Text(title)
+					Spacer()
+					Image(systemName: "chevron.right")
+						.font(.footnote.weight(.semibold))
+						.rotationEffect(.degrees(isExpanded ? 90 : 0))
+				}
+				.foregroundStyle(.secondary)
+				.padding(.horizontal, 20)
+				.padding(.vertical, 18)
+				.contentShape(Rectangle())
+			}
+			.buttonStyle(.plain)
+			
+			if isExpanded {
+				content()
+					.padding(.horizontal, 20)
+					.padding(.bottom, 18)
+			}
+		}
 	}
 }
 

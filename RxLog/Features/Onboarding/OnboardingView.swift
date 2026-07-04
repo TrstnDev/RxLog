@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+// MARK: - Onboarding Symbol Baseline
+
+extension SymbolStyle {
+	static let onboarding = SymbolStyle(
+		colorRenderingMode: .gradient,
+		colors: [.accentColorLight, Color(red: 0.753, green: 0.753, blue: 0.753)],
+		font: .system(size: 150, weight: .semibold),
+		animation: .bounce(),
+		repeatMode: .periodic(delay: 4)
+	)
+}
+
 // MARK: - Page Model
 
 /// Content for a single onboarding pane
@@ -15,6 +27,7 @@ struct OnboardingPage: Identifiable {
 	let symbol: String
 	let title: String
 	let description: String
+	var style: SymbolStyle = .onboarding
 }
 
 // MARK: - Onboarding Flow
@@ -28,17 +41,17 @@ struct OnboardingView: View {
 
 	private let pages: [OnboardingPage] = [
 		OnboardingPage(
-			symbol: "heart.text.clipboard.fill",
+			symbol: "heart.text.clipboard",
 			title: "Histories at hand",
 			description: "Keep patient histories and running notes organised and instantly searchable when it matters."
 		),
 		OnboardingPage(
-			symbol: "blood.pressure.cuff.badge.gauge.with.needle.fill",
+			symbol: "waveform.path.ecg",
 			title: "Log in seconds",
 			description: "Capture notes, observations, and handovers fast - built for the pace of a busy public ward."
 		),
 		OnboardingPage(
-			symbol: "lock.shield.fill",
+			symbol: "lock.heart",
 			title: "Private by Design",
 			description: "Your entries stay on your device. Clinical detail deserves clinical-grade privacy."
 		)
@@ -136,11 +149,12 @@ private struct PaneView: View {
 	var body: some View {
 		VStack {
 			Spacer(minLength: 0)
-
 			VStack(spacing: 28) {
 				Image(systemName: page.symbol)
+					.symbolEffect(.bounce, options: .repeat(.periodic(delay: 4)))
+					.symbolColorRenderingMode(.gradient)
 					.font(.system(size: 150, weight: .semibold))
-					.foregroundStyle(.app(.accent))
+					.foregroundStyle(.accentColorLight, Color(red: 0.753, green: 0.753, blue: 0.753))
 					.frame(height: 180)
 					.frame(maxWidth: .infinity)
 					.scrollTransition(.animated(.bouncy(duration: 0.4)), axis: .horizontal) { content, phase in

@@ -38,6 +38,8 @@ struct PatientAvatar: View {
 			.frame(width: size, height: size)
 			.foregroundStyle(gloss)
 			.shadow(color: .black.opacity(0.15), radius: 7, y: 4)
+			.id(glyph)
+			.transition(.symbolEffect)
 	}
 }
 
