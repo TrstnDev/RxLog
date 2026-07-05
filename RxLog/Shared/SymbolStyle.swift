@@ -8,93 +8,188 @@
 
 import SwiftUI
 
-// MARK: - Configuration Enums
-// Small choices that map onto the Symbol's framework effect-configuration properties
+// MARK: - SymbolStyle
 
-/// Whether an effect animates each layer in turn, or the whole symbol
-enum SymbolScope { case wholeSymbol, byLayer }
-
-/// Vertical direction for bounce/scale/appear/disappear
-enum SymbolVDirection { case up, down }
-
-/// Rotation direction
-enum SymbolRotation { case clockwise, counterClockwise }
-
-/// Wiggle direction
-enum SymbolWiggle { case up, down, left, right, forward, backward, clockwise, counterClockwise }
-
-/// Breathe styles: `plain` (scale) or `pulse` (opacity)
-enum SymbolBreathe { case plain, pulse }
-
-/// Variable-colour fill: `iterative` lights one layer at a time; `cumulative` keeps them lit
-enum VariableColorFill { case iterative, cumulative }
-
-/// How non-highlighted variable-colour layers render
-enum InactiveLayers { case dim, hide }
-
-/// Replace directions (direction old symbol leaves / new one enters)
-enum SymbolReplace { case downUp, upUp, offUp }
-
-/// Repeat behaviour for indefinite effects
-enum SymbolRepeatMode { case once, continuous, periodic(delay: Double) }
-
-// MARK: - Animation
-
-/// Every SF Symbol effect, with its own configuration
-enum SymbolAnimation {
-	case none
+/// Complete, value-type description of how to render and animate an SF Symbol
+///
+/// Built via fluent API and handed to `symbolStyle(_:)` or ``StyledSymbol``
+struct SymbolStyle {
 	
-	/// Indefinite - via ``symbolEffect(_:options:isActive:)``
-	case bounce(SymbolVDirection = .up, scope: SymbolScope = .wholeSymbol)
-	case pulse(scope: SymbolScope = .byLayer)
-	case variableColor(VariableColorFill = .cumulative, inactive: InactiveLayers = .dim, reverses: Bool = false)
-	case scale(SymbolVDirection = .up, scope: SymbolScope = .byLayer)
-	case wiggle(SymbolWiggle = .left, scope: SymbolScope = .byLayer)
-	case rotate(SymbolRotation = .clockwise, scope: SymbolScope = .byLayer)
-	case breathe(SymbolBreathe = .plain, scope: SymbolScope = .wholeSymbol)
+	// MARK: Rendering attributes
 	
-	/// Transition (fires on insert/remove) - via ``.transition(.symbolEffect(_:))``
-	case appear(SymbolVDirection = .up, scope: SymbolScope = .wholeSymbol)
-	case disappear(SymbolVDirection = .down, scope: SymbolScope = .wholeSymbol)
-	case drawOn(scope: SymbolScope = .wholeSymbol)
-	case drawOff(scope: SymbolScope = .wholeSymbol)
+	/// `.monochrome` / `.hierarchical` / `.palette` / `.multicolor` (`nil` uses symbol's default)
+	var renderingMode: SymbolRenderingMode?
 	
-	/// Content transition (fires on symbol-name change) - via ``.contentTransition(.symbolEffect(.replace))``
-	case replace(SymbolReplace = .downUp, scope: SymbolScope = .wholeSymbol)
+	/// `.gradient` / `.flat`
+	var colorRenderingMode: SymbolColorRenderingMode?
+	
+	/// 1 - 3 layer colours
+	var colors: [AnyShapeStyle]
+	
+	/// Drives multi-state symbols (`nil` renders full value)
+	var variableValue: Double?
+	
+	/// Point size and weight
+	var font: Font?
+	
+	// MARK: Continuous animation attributes
+	
+	/// Animation configuration
+	var animation: Animation
+	
+	/// How an indefinite animation repeats
+	var repeatMode: RepeatMode
+	
+	/// Playback speed multiplier (1 = normal)
+	var speed: Double
+	
+	/// Gate for indefinite effects
+	var isActive: Bool
+	
+	/// Creates a blank style - prefer fluent builder to layer attributes on top
+	init(
+		renderingMode: SymbolRenderingMode? = nil,
+		colorRenderingMode: SymbolColorRenderingMode? = nil,
+		colors: [AnyShapeStyle] = [],
+		variableValue: Double? = nil,
+		font: Font? = nil,
+		animation: Animation = .none,
+		repeatMode: RepeatMode = .continuous,
+		speed: Double = 1,
+		isActive: Bool = true
+	) {
+		self.renderingMode = renderingMode
+		self.colorRenderingMode = colorRenderingMode
+		self.colors = colors
+		self.variableValue = variableValue
+		self.font = font
+		self.animation = animation
+		self.repeatMode = repeatMode
+		self.speed = speed
+		self.isActive = isActive
+	}
 }
 
-// MARK: - Style
+// MARK: - Configuration vocabulary
 
-/// Complete symbol styling value: rendering + colours + animation
-struct SymbolStyle {
-	// Rendering
-	var renderingMode: SymbolRenderingMode? = nil
-	var colorRenderingMode: SymbolColorRenderingMode? = nil
-	var colors: [Color] = []
-	var variableValue: Double? = nil
-	var font: Font? = nil
+extension SymbolStyle {
 	
-	// Animation
-	var animation: SymbolAnimation = .none
-	var repeatMode: SymbolRepeatMode = .continuous
-	var speed: Double = 1.0
-	var isActive: Bool = true
+	/// Which parts of a symbol an effect animates
+	enum Scope {
+		case wholeSymbol
+		case byLayer
+		case individually	// Draw On/Off only
+	}
+	
+	/// Vertical travel for bounce, scale, appear, and disappear
+	enum Direction { case up, down }
+	
+	/// Spin direction for rotate
+	enum Spin { case clockwise, counterClockwise }
+	
+	/// The eight wiggle directions
+	enum WiggleDirection { case up, down, left, right, forward, backward, clockwise, counterClockwise }
+	
+	/// The two breathe rhythms
+	enum Breathe { case plain, pulse }
+	
+	/// How variable colour fills layers
+	enum VariableFill { case iterative, cumulative }
+	
+	/// What happens to inactive layers in variable colour
+	enum InactiveLayers { case dim, hide }
+	
+	/// How a replaced symbol yields to its successor
+	enum Replace { case downUp, upUp, offUp }
+	
+	/// How an indefinite effect repeats
+	enum RepeatMode {
+		case once
+		case continuous
+		case periodic(delay: Double)
+	}
+	
+	/// Every SF Symbol effect, each carrying its configuration
+	enum Animation {
+		case none
+		case bounce(Direction = .up, scope: Scope = .byLayer)
+		case pulse(scope: Scope = .byLayer)
+		case variableColor(fill: VariableFill = .cumulative, inactive: InactiveLayers = .dim, reverses: Bool = false)
+		case scale(Direction = .up, scope: Scope = .byLayer)
+		case wiggle(WiggleDirection = .left, scope: Scope = .byLayer)
+		case rotate(Spin = .clockwise, scope: Scope = .byLayer)
+		case breathe(Breathe = .plain, scope: Scope = .wholeSymbol)
+		case replace(Replace = .downUp, scope: Scope = .wholeSymbol)
+	}
+	
+	/// A reveal transition effect that plays when a symbol is inserted and belongs on `symbolReveal(_:speed:)`
+	enum Reveal {
+		case appear(Direction = .up, scope: Scope = .wholeSymbol)
+		case disappear(Direction = .down, scope: Scope = .wholeSymbol)
+		case drawOn(scope: Scope = .individually)
+		case drawOff(scope: Scope = .individually)
+	}
 }
 
 // MARK: - Fluent Builder
+//
+// Every method returns a mutated copy
 
 extension SymbolStyle {
+	
+	// -------- Rendering ---------------------------------------------------------------
+	
+	/// Sets the rendering mode directly
 	func rendering(_ mode: SymbolRenderingMode?) -> Self { with { $0.renderingMode = mode } }
+	
+	/// Monochrome fill in a single style
+	func monochrome(_ style: some ShapeStyle) -> Self {
+		with { $0.renderingMode = .monochrome; $0.colors = [AnyShapeStyle(style)] }
+	}
+	
+	/// Hierarchical fill
+	func hierarchical(_ base: some ShapeStyle) -> Self {
+		with { $0.renderingMode = .hierarchical; $0.colors = [AnyShapeStyle(base)] }
+	}
+	
+	/// Two-colour palette fill
+	func palette(_ a: some ShapeStyle, _ b: some ShapeStyle) -> Self {
+		with { $0.renderingMode = .palette; $0.colors = [AnyShapeStyle(a), AnyShapeStyle(b)] }
+	}
+	
+	/// Three-colour palette fill
+	func palette(_ a: some ShapeStyle, _ b: some ShapeStyle, _ c: some ShapeStyle) -> Self {
+		with { $0.renderingMode = .palette; $0.colors = [AnyShapeStyle(a), AnyShapeStyle(b), AnyShapeStyle(c)] }
+	}
+	
+	/// Multicolour fill, using the colours baked into the symbol
+	func multicolor() -> Self { with { $0.renderingMode = .multicolor } }
+	
+	/// Toggles the iOS 26 gradient fill on (default) or off
 	func gradient(_ on: Bool = true) -> Self { with { $0.colorRenderingMode = on ? .gradient : .flat } }
-	func colors(_ colors: Color...) -> Self { with { $0.colors = colors } }
+	
+	/// Sets layer colours without touching the rendering mode
+	func colors(_ a: some ShapeStyle) -> Self { with { $0.colors = [AnyShapeStyle(a)] } }
+	func colors(_ a: some ShapeStyle, _ b: some ShapeStyle) -> Self {
+		with { $0.colors = [AnyShapeStyle(a), AnyShapeStyle(b)] }
+	}
+	func colors(_ a: some ShapeStyle, _ b: some ShapeStyle, _ c: some ShapeStyle) -> Self {
+		with { $0.colors = [AnyShapeStyle(a), AnyShapeStyle(b), AnyShapeStyle(c)] }
+	}
+	
+	// -------- Symbol value + font -----------------------------------------------------
+	
 	func variableValue(_ value: Double?) -> Self { with { $0.variableValue = value } }
 	func font(_ font: Font?) -> Self { with { $0.font = font } }
-	func effect(_ animation: SymbolAnimation) -> Self { with { $0.animation = animation } }
-	func repeats(_ mode: SymbolRepeatMode) -> Self { with { $0.repeatMode = mode } }
+	
+	// -------- Continuous Animation ----------------------------------------------------
+	
+	func effect(_ animation: Animation) -> Self { with { $0.animation = animation } }
+	func repeats(_ mode: RepeatMode) -> Self { with { $0.repeatMode = mode } }
 	func speed(_ speed: Double) -> Self { with { $0.speed = speed } }
 	func active(_ active: Bool) -> Self { with { $0.isActive = active } }
-
-	/// Copy-and-mutate helper underpinning fluent API
+	
+	/// Copy-and-mutate helper backing every builder above
 	private func with(_ mutate: (inout Self) -> Void) -> Self {
 		var copy = self
 		mutate(&copy)
@@ -102,19 +197,24 @@ extension SymbolStyle {
 	}
 }
 
-// MARK: - Application
+// MARK: - View Integration
 
 extension View {
-	/// Applies a ``SymbolStyle`` to any symbol image in this view
+	/// Applies a ``SymbolStyle`` to every SF Symbol in this view
 	func symbolStyle(_ style: SymbolStyle) -> some View {
 		modifier(SymbolStyleModifier(style: style))
 	}
 }
 
-/// A self-contained styled symbol
+/// A symbol image with a ``SymbolStyle`` already applied
 struct StyledSymbol: View {
 	let systemName: String
-	var style: SymbolStyle = SymbolStyle()
+	var style: SymbolStyle
+	
+	init(_ systemName: String, style: SymbolStyle = SymbolStyle()) {
+		self.systemName = systemName
+		self.style = style
+	}
 	
 	var body: some View {
 		Image(systemName: systemName, variableValue: style.variableValue)
@@ -123,9 +223,59 @@ struct StyledSymbol: View {
 	}
 }
 
-// MARK: - Modifiers
+// MARK: - Symbol Reveals
 
-/// Applies the whole style: value-typed rendering modifiers then the animation
+extension View {
+	/// `reveal`: which entrance to play
+	/// `speed`: playback multiplier (1 = normal speed)
+	func symbolReveal(_ reveal: SymbolStyle.Reveal, speed: Double = 1) -> some View {
+		transition(reveal.symbolEffectTransition(speed: speed))
+	}
+}
+
+extension SymbolStyle.Reveal {
+	fileprivate func symbolEffectTransition(speed: Double) -> SymbolEffectTransition {
+		let options = SymbolEffectOptions.speed(speed)
+		switch self {
+		case .appear(let dir, let scope):     return .symbolEffect(Self.appear(dir, scope), options: options)
+		case .disappear(let dir, let scope):  return .symbolEffect(Self.disappear(dir, scope), options: options)
+		case .drawOn(let scope):              return .symbolEffect(Self.drawOn(scope), options: options)
+		case .drawOff(let scope):             return .symbolEffect(Self.drawOff(scope), options: options)
+		}
+	}
+	
+	private static func appear(_ dir: SymbolStyle.Direction, _ scope: SymbolStyle.Scope) -> AppearSymbolEffect {
+		let directed: AppearSymbolEffect = (dir == .up) ? .appear.up : .appear.down
+		return scope == .wholeSymbol ? directed.wholeSymbol : directed.byLayer
+	}
+	
+	private static func disappear(_ dir: SymbolStyle.Direction, _ scope: SymbolStyle.Scope) -> DisappearSymbolEffect {
+		let directed: DisappearSymbolEffect = (dir == .up) ? .disappear.up : .disappear.down
+		return scope == .wholeSymbol ? directed.wholeSymbol : directed.byLayer
+	}
+	
+	private static func drawOn(_ scope: SymbolStyle.Scope) -> DrawOnSymbolEffect {
+		let base: DrawOnSymbolEffect = .drawOn
+		switch scope {
+		case .wholeSymbol:  return base.wholeSymbol
+		case .byLayer:      return base.byLayer
+		case .individually: return base.individually
+		}
+	}
+	
+	private static func drawOff(_ scope: SymbolStyle.Scope) -> DrawOffSymbolEffect {
+		let base: DrawOffSymbolEffect = .drawOff
+		switch scope {
+		case .wholeSymbol:  return base.wholeSymbol
+		case .byLayer:      return base.byLayer
+		case .individually: return base.individually
+		}
+	}
+}
+
+// MARK: - Application
+
+/// Applies the style's attributes in order: rendering -> colour rendering -> colours -> animation
 private struct SymbolStyleModifier: ViewModifier {
 	let style: SymbolStyle
 	
@@ -133,14 +283,18 @@ private struct SymbolStyleModifier: ViewModifier {
 		content
 			.symbolRenderingMode(style.renderingMode)
 			.symbolColorRenderingMode(style.colorRenderingMode)
-			.modifier(SymbolForegroundColors(colors: style.colors))
-			.modifier(SymbolAnimationDispatch(style: style))
+			.modifier(SymbolColorsModifier(colors: style.colors))
+			.modifier(SymbolAnimationModifier(
+				animation: style.animation,
+				options: style.effectOptions,
+				isActive: style.isActive
+			))
 	}
 }
 
-/// Chooses the `foregroundStyle` overload matching the number of colours supplied (0-3)
-private struct SymbolForegroundColors: ViewModifier {
-	let colors: [Color]
+/// Applies 0-3 foreground styles
+private struct SymbolColorsModifier: ViewModifier {
+	let colors: [AnyShapeStyle]
 	
 	@ViewBuilder
 	func body(content: Content) -> some View {
@@ -153,143 +307,105 @@ private struct SymbolForegroundColors: ViewModifier {
 	}
 }
 
-/// Maps each `SymbolAnimation` case onto one of the four effect surfaces
-private struct SymbolAnimationDispatch: ViewModifier {
-	let style: SymbolStyle
-	
-	/// Options for repeating indefinite effects: repeat behaviour + speed
-	private var options: SymbolEffectOptions {
-		let base: SymbolEffectOptions
-		
-		switch style.repeatMode {
-		case .once:
-			base = .nonRepeating
-		case .continuous:
-			base = .repeat(.continuous)
-		case .periodic(let delay):
-			base = .repeat(.periodic(delay: delay))
+private extension SymbolStyle {
+	/// Translates `repeatMode` + `speed` into Apple's `SymbolEffectOptions`
+	var effectOptions: SymbolEffectOptions {
+		let base: SymbolEffectOptions = switch repeatMode {
+		case .once: .nonRepeating
+		case .continuous: .repeat(.continuous)
+		case .periodic(let delay): .repeat(.periodic(delay: delay))
 		}
-		return base.speed(style.speed)
+		return base.speed(speed)
 	}
-	
-	/// Options for one-shot transitions/replace: speed only
-	private var oneShotOptions: SymbolEffectOptions { .default.speed(style.speed) }
+}
+
+/// Chooses the correct effect surface and concrete effect type for an animation
+private struct SymbolAnimationModifier: ViewModifier {
+	let animation: SymbolStyle.Animation
+	let options: SymbolEffectOptions
+	let isActive: Bool
 	
 	@ViewBuilder
 	func body(content: Content) -> some View {
-		switch style.animation {
+		switch animation {
 		case .none:
 			content
-			
-		// ---- Indefinite ------------------------------------------------------------------------------
 		case .bounce(let dir, let scope):
-			content.symbolEffect(bounce(dir, scope), options: options, isActive: style.isActive)
+			content.symbolEffect(bounce(dir, scope), options: options, isActive: isActive)
 		case .pulse(let scope):
-			content.symbolEffect(pulse(scope), options: options, isActive: style.isActive)
+			content.symbolEffect(pulse(scope), options: options, isActive: isActive)
 		case .variableColor(let fill, let inactive, let reverses):
-			content.symbolEffect(variableColor(fill, inactive, reverses), options: options, isActive: style.isActive)
+			content.symbolEffect(variableColor(fill, inactive, reverses), options: options, isActive: isActive)
 		case .scale(let dir, let scope):
-			content.symbolEffect(scale(dir, scope), options: options, isActive: style.isActive)
+			content.symbolEffect(scale(dir, scope), options: options, isActive: isActive)
 		case .wiggle(let dir, let scope):
-			content.symbolEffect(wiggle(dir, scope), options: options, isActive: style.isActive)
-		case .rotate(let dir, let scope):
-			content.symbolEffect(rotate(dir, scope), options: options, isActive: style.isActive)
-		case .breathe(let bStyle, let scope):
-			content.symbolEffect(breathe(bStyle, scope), options: options, isActive: style.isActive)
-		
-		// ---- Transition ------------------------------------------------------------------------------
-		case .appear(let dir, let scope):
-			content.transition(.symbolEffect(appear(dir, scope), options: oneShotOptions))
-		case .disappear(let dir, let scope):
-			content.transition(.symbolEffect(disappear(dir, scope), options: oneShotOptions))
-		case .drawOn(let scope):
-			content.transition(.symbolEffect(drawOn(scope), options: oneShotOptions))
-		case .drawOff(let scope):
-			content.transition(.symbolEffect(drawOff(scope), options: oneShotOptions))
-			
-		// ---- Content transition ----------------------------------------------------------------------
-		case .replace(let rStyle, let scope):
-			content.contentTransition(.symbolEffect(replace(rStyle, scope), options: oneShotOptions))
+			content.symbolEffect(wiggle(dir, scope), options: options, isActive: isActive)
+		case .rotate(let spin, let scope):
+			content.symbolEffect(rotate(spin, scope), options: options, isActive: isActive)
+		case .breathe(let style, let scope):
+			content.symbolEffect(breathe(style, scope), options: options, isActive: isActive)
+		case .replace(let style, let scope):
+			content.contentTransition(.symbolEffect(replace(style, scope), options: options))
 		}
 	}
 	
-	// MARK: - Effect Builders
+	// MARK: Concrete Effect Builders
 	
-	private func bounce(_ dir: SymbolVDirection, _ scope: SymbolScope) -> BounceSymbolEffect {
+	private func bounce(_ dir: SymbolStyle.Direction, _ scope: SymbolStyle.Scope) -> BounceSymbolEffect {
 		let directed: BounceSymbolEffect = (dir == .up) ? .bounce.up : .bounce.down
-		return scope == .byLayer ? directed.byLayer : directed.wholeSymbol
+		return scope == .wholeSymbol ? directed.wholeSymbol : directed.byLayer
 	}
 	
-	private func pulse(_ scope: SymbolScope) -> PulseSymbolEffect {
+	private func pulse(_ scope: SymbolStyle.Scope) -> PulseSymbolEffect {
 		let base: PulseSymbolEffect = .pulse
-		return scope == .byLayer ? base.byLayer : base.wholeSymbol
+		return scope == .wholeSymbol ? base.wholeSymbol : base.byLayer
 	}
 	
-	private func variableColor(_ fill: VariableColorFill, _ inactive: InactiveLayers, _ reverses: Bool) -> VariableColorSymbolEffect {
-		var e: VariableColorSymbolEffect = .variableColor
-		e = (fill == .iterative) ? e.iterative : e.cumulative
-		e = (inactive == .dim) ? e.dimInactiveLayers : e.hideInactiveLayers
-		e = reverses ? e.reversing : e.nonReversing
-		return e
+	private func variableColor(_ fill: SymbolStyle.VariableFill, _ inactive: SymbolStyle.InactiveLayers, _ reverses: Bool) -> VariableColorSymbolEffect {
+		var effect: VariableColorSymbolEffect = .variableColor
+		effect = (fill == .iterative) ? effect.iterative : effect.cumulative
+		effect = (inactive == .dim) ? effect.dimInactiveLayers : effect.hideInactiveLayers
+		effect = reverses ? effect.reversing : effect.nonReversing
+		return effect
 	}
 	
-	private func scale(_ dir: SymbolVDirection, _ scope: SymbolScope) -> ScaleSymbolEffect {
+	private func scale(_ dir: SymbolStyle.Direction, _ scope: SymbolStyle.Scope) -> ScaleSymbolEffect {
 		let directed: ScaleSymbolEffect = (dir == .up) ? .scale.up : .scale.down
-		return scope == .byLayer ? directed.byLayer : directed.wholeSymbol
+		return scope == .wholeSymbol ? directed.wholeSymbol : directed.byLayer
 	}
 	
-	private func wiggle(_ dir: SymbolWiggle, _ scope: SymbolScope) -> WiggleSymbolEffect {
-		var e: WiggleSymbolEffect = .wiggle
+	private func wiggle(_ dir: SymbolStyle.WiggleDirection, _ scope: SymbolStyle.Scope) -> WiggleSymbolEffect {
+		var effect: WiggleSymbolEffect = .wiggle
 		switch dir {
-		case .up:               e = e.up
-		case .down:             e = e.down
-		case .left:             e = e.left
-		case .right:            e = e.right
-		case .forward:          e = e.forward
-		case .backward:         e = e.backward
-		case .clockwise:        e = e.clockwise
-		case .counterClockwise: e = e.counterClockwise
+		case .up: effect = effect.up
+		case .down: effect = effect.down
+		case .left: effect = effect.left
+		case .right: effect = effect.right
+		case .forward: effect = effect.forward
+		case .backward: effect = effect.backward
+		case .clockwise: effect = effect.clockwise
+		case .counterClockwise: effect = effect.counterClockwise
 		}
-		return scope == .byLayer ? e.byLayer : e.wholeSymbol
+		return scope == .wholeSymbol ? effect.wholeSymbol : effect.byLayer
 	}
 	
-	private func rotate(_ dir: SymbolRotation, _ scope: SymbolScope) -> RotateSymbolEffect {
-		let directed: RotateSymbolEffect = (dir == .clockwise) ? .rotate.clockwise : .rotate.counterClockwise
-		return scope == .byLayer ? directed.byLayer : directed.wholeSymbol
+	private func rotate(_ spin: SymbolStyle.Spin, _ scope: SymbolStyle.Scope) -> RotateSymbolEffect {
+		let directed: RotateSymbolEffect = (spin == .clockwise) ? .rotate.clockwise : .rotate.counterClockwise
+		return scope == .wholeSymbol ? directed.wholeSymbol : directed.byLayer
 	}
 	
-	private func breathe(_ style: SymbolBreathe, _ scope: SymbolScope) -> BreatheSymbolEffect {
+	private func breathe(_ style: SymbolStyle.Breathe, _ scope: SymbolStyle.Scope) -> BreatheSymbolEffect {
 		let styled: BreatheSymbolEffect = (style == .plain) ? .breathe.plain : .breathe.pulse
-		return scope == .byLayer ? styled.byLayer : styled.wholeSymbol
+		return scope == .wholeSymbol ? styled.wholeSymbol : styled.byLayer
 	}
 	
-	private func appear(_ dir: SymbolVDirection, _ scope: SymbolScope) -> AppearSymbolEffect {
-		let directed: AppearSymbolEffect = (dir == .up) ? .appear.up : .appear.down
-		return scope == .byLayer ? directed.byLayer : directed.wholeSymbol
-	}
-	
-	private func disappear(_ dir: SymbolVDirection, _ scope: SymbolScope) -> DisappearSymbolEffect {
-		let directed: DisappearSymbolEffect = (dir == .up) ? .disappear.up : .disappear.down
-		return scope == .byLayer ? directed.byLayer : directed.wholeSymbol
-	}
-	
-	private func drawOn(_ scope: SymbolScope) -> DrawOnSymbolEffect {
-		let base: DrawOnSymbolEffect = .drawOn
-		return scope == .byLayer ? base.byLayer : base.wholeSymbol
-	}
-	
-	private func drawOff(_ scope: SymbolScope) -> DrawOffSymbolEffect {
-		let base: DrawOffSymbolEffect = .drawOff
-		return scope == .byLayer ? base.byLayer : base.wholeSymbol
-	}
-	
-	private func replace(_ style: SymbolReplace, _ scope: SymbolScope) -> ReplaceSymbolEffect {
+	private func replace(_ style: SymbolStyle.Replace, _ scope: SymbolStyle.Scope) -> ReplaceSymbolEffect {
 		let directed: ReplaceSymbolEffect
 		switch style {
 		case .downUp: directed = .replace.downUp
-		case .upUp:   directed = .replace.upUp
-		case .offUp:  directed = .replace.offUp
+		case .upUp: directed = .replace.upUp
+		case .offUp: directed = .replace.offUp
 		}
-		return scope == .byLayer ? directed.byLayer : directed.wholeSymbol
+		return scope == .wholeSymbol ? directed.wholeSymbol : directed.byLayer
 	}
 }
