@@ -138,10 +138,10 @@ struct PatientGateView: View {
 			Image(systemName: "person.3.sequence.fill")
 				.symbolStyle(
 					SymbolStyle()
-						.hierarchical(Color.accent)
+						.palette(Color.accent, .secondary, .tertiary)
 						.gradient(false)
 						.effect(.variableColor(inactive: .dim, reverses: false))
-						.repeats(.periodic(delay: 3))
+						.repeats(.periodic(delay: 2))
 						.speed(0.5))
 				.font(.system(size: 100))
 			VStack(alignment: .leading, spacing: 0) {
@@ -233,7 +233,7 @@ private struct GatePaneView: View {
 			}
 			
 			if let footnote = pane.footnote {
-				Text("\(footnote) \(Text("\u{2192}").foregroundStyle(Color.accent))")
+				Text("\(footnote) \(Text("\u{2192}").foregroundStyle(Color.accent).fontWeight(.medium))")
 					.font(.callout)
 					.foregroundStyle(.secondary)
 					.fixedSize(horizontal: false, vertical: true)

@@ -85,38 +85,65 @@ struct AliasEditor: View {
 	}
 	
 	private var characterControls: some View {
-		Menu {
-			Picker("Alphabet", selection: $script) {
-				Text("Greek").tag(PatientAlias.Script.greek)
-				Text("Latin").tag(PatientAlias.Script.latin)
+		HStack(spacing: 30) {
+			Menu {
+				Picker("Alphabet", selection: $script) {
+					Text("Latin").tag(PatientAlias.Script.latin)
+					Text("Greek").tag(PatientAlias.Script.greek)
+				}
+			} label: {
+				HStack(spacing: 6) {
+					Text(sample(for: script))
+						.fontWeight(.bold)
+					Text(scriptName(script))
+						.foregroundStyle(.primary)
+					Image(systemName: "chevron.up.chevron.down")
+						.font(.caption2.weight(.semibold))
+						.foregroundStyle(.secondary)
+				}
 			}
-			Picker("Character", selection: $character) {
-				ForEach(letters(for: script), id: \.self) { Text($0).tag($0) }
+			.padding(.leading, 18)
+			
+			Menu {
+				Picker("Character", selection: $character) {
+					ForEach(letters(for: script), id: \.self) { Text($0).tag($0) }
+				}
+			} label: {
+				Text(character)
+					.font(.headline)
+					.foregroundStyle(.primary)
+					.frame(minWidth: 10)
 			}
-		} label: {
-			AliasPill(sample: sample(for: script), title: scriptName(script))
+			.buttonStyle(.glass)
+			.padding(.trailing, 10)
 		}
+		.padding(.vertical, 8)
+		.background(Color(.tertiarySystemFill), in: Capsule(style: .continuous))
 	}
 	
 	private var wardBedControls: some View {
-		HStack(spacing: 12) {
-			Menu {
-				Picker("Ward", selection: $ward) {
-					ForEach(1...99, id: \.self) { Text("\($0)").tag($0) }
-				}
-				.pickerStyle(.wheel)
-			} label: {
-				AliasPill(systemImage: "building.2.fill", title: "Ward")
-			}
-			Menu {
-				Picker("Bed", selection: $bed) {
-					ForEach(1...99, id: \.self) { Text("\($0)").tag($0) }
-				}
-				.pickerStyle(.wheel)
-			} label: {
-				AliasPill(systemImage: "bed.double.fill", title: "Bed")
-			}
+		HStack(spacing: 0) {
+			numberWheel("Ward", selection: $ward)
+			numberWheel("Bed", selection: $bed)
 		}
+	}
+	
+	private func numberWheel(_ title: String, selection: Binding<Int>) -> some View {
+		VStack(spacing: 2) {
+			Text(title)
+				.font(.subheadline.weight(.semibold))
+				.foregroundStyle(.secondary)
+			
+			Picker(title, selection: selection) {
+				ForEach(0...99, id: \.self) { number in
+					Text("\(number)").tag(number)
+				}
+			}
+			.pickerStyle(.wheel)
+			.labelsHidden()
+			.frame(height: 130)
+		}
+		.frame(maxWidth: .infinity)
 	}
 	
 	// MARK: - Helpers
@@ -164,34 +191,6 @@ private struct ModeSelector: View {
 			}
 		}
 		.padding(4)
-		.background(Color(.tertiarySystemFill), in: Capsule(style: .continuous))
-	}
-}
-
-// MARK: - Alias Pill
-
-/// Tappable pill label used inside the alias menu
-private struct AliasPill: View {
-	var systemImage: String? = nil
-	var sample: String? = nil
-	let title: String
-	
-	var body: some View {
-		HStack(spacing: 6) {
-			if let systemImage {
-				Image(systemName: systemImage).foregroundStyle(.tint)
-			}
-			if let sample {
-				Text(sample).fontWeight(.bold).foregroundStyle(.tint)
-			}
-			Text(title).foregroundStyle(.primary)
-			Image(systemName: "chevron.right")
-				.font(.caption2.weight(.semibold))
-				.foregroundStyle(.secondary)
-		}
-		.font(.subheadline)
-		.padding(.horizontal, 16)
-		.padding(.vertical, 10)
 		.background(Color(.tertiarySystemFill), in: Capsule(style: .continuous))
 	}
 }
