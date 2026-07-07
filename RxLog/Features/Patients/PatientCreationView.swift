@@ -29,7 +29,6 @@ struct PatientCreationView: View {
 					VStack(spacing: 8) {
 						PatientCard(glyph: glyph, gradient: gradient, glyphSize: 100)
 							.frame(width: 180, height: 180)
-							.padding(.top, 8)
 						
 						avatarEditor
 					}
@@ -70,6 +69,8 @@ struct PatientCreationView: View {
 					.scaledToFit()
 					.foregroundStyle(.primary)
 			}
+			
+			Spacer()
 			
 			CarouselPicker(
 				items: AppGradient.patientPalette,

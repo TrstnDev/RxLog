@@ -19,14 +19,6 @@ enum AliasPools {
 	
 	/// Uppercase Latin letters
 	static let latin: [String] = (UInt8(ascii: "A")...UInt8(ascii: "Z")).map { String(UnicodeScalar($0)) }
-	
-	static let firstNames: [String] = [
-		"Jane", "John", "Alex", "Sam", "Jordan", "Taylor", "Casey", "Morgan", "Riley", "Quinn"
-	]
-	
-	static let lastNames: [String] = [
-		"Doe", "Roe", "Bloggs", "Smith", "Stone", "Rivers", "Vale", "Frost", "Snow", "Fields"
-	]
 }
 
 // MARK: - Alias Editor
@@ -38,7 +30,6 @@ struct AliasEditor: View {
 	enum Mode: String, CaseIterable, Identifiable {
 		case character = "Character"
 		case wardBed = "Ward & Bed No."
-		case pseudonym = "Pseudonym"
 		var id: String { rawValue }
 	}
 	
@@ -47,28 +38,33 @@ struct AliasEditor: View {
 	@State private var script: PatientAlias.Script = .latin
 	@State private var ward = 1
 	@State private var bed = 1
-	@State private var firstName = AliasPools.firstNames[0]
-	@State private var lastName = AliasPools.lastNames[0]
 	
 	/// The alias composed from current method + its state; single source of truth
 	private var composed: PatientAlias {
 		switch mode {
 		case .character: .character(character, script: script)
 		case .wardBed: .wardBed(ward: ward, bed: bed)
-		case .pseudonym: .pseudonym(first: firstName, last: lastName)
 		}
 	}
 	
 	var body: some View {
 		VStack(spacing: 18) {
-			ModeSelector(selection: $mode)
-			
+				Picker("Alias type", selection: $mode) {
+					ForEach(Mode.allCases) { mode in
+						Text(mode.rawValue).tag(mode)
+					}
+				}
+				.pickerStyle(.segmented)
+
 			Text(composed.displayName)
 				.font(.title2.weight(.bold))
 				.lineLimit(1)
 				.minimumScaleFactor(0.7)
 			
 			controls
+				.id(mode)
+				.transition(.blurReplace)
+				.animation(.smooth(duration: 0.3), value: mode)
 		}
 		.onChange(of: composed) { _, newValue in
 			alias = newValue
@@ -85,7 +81,6 @@ struct AliasEditor: View {
 		switch mode {
 		case .character: characterControls
 		case .wardBed: wardBedControls
-		case .pseudonym: pseudonymControls
 		}
 	}
 	
@@ -107,36 +102,19 @@ struct AliasEditor: View {
 		HStack(spacing: 12) {
 			Menu {
 				Picker("Ward", selection: $ward) {
-					ForEach(1...40, id: \.self) { Text("\($0)").tag($0) }
+					ForEach(1...99, id: \.self) { Text("\($0)").tag($0) }
 				}
+				.pickerStyle(.wheel)
 			} label: {
 				AliasPill(systemImage: "building.2.fill", title: "Ward")
 			}
 			Menu {
 				Picker("Bed", selection: $bed) {
-					ForEach(1...60, id: \.self) { Text("\($0)").tag($0) }
+					ForEach(1...99, id: \.self) { Text("\($0)").tag($0) }
 				}
+				.pickerStyle(.wheel)
 			} label: {
 				AliasPill(systemImage: "bed.double.fill", title: "Bed")
-			}
-		}
-	}
-	
-	private var pseudonymControls: some View {
-		HStack(spacing: 12) {
-			Menu {
-				Picker("First Name", selection: $firstName) {
-					ForEach(AliasPools.firstNames, id: \.self) { Text($0).tag($0) }
-				}
-			} label: {
-				AliasPill(title: "First Name")
-			}
-			Menu {
-				Picker("Last Name", selection: $lastName) {
-					ForEach(AliasPools.lastNames, id: \.self) { Text($0).tag($0) }
-				}
-			} label: {
-				AliasPill(title: "Last Name")
 			}
 		}
 	}

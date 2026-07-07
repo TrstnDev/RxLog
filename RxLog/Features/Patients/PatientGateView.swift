@@ -74,7 +74,7 @@ struct PatientGateView: View {
 			footnote: nil,
 			bullets: [
 				GateBullet(lead: "No Real Names: ", detail: "You are strictly prohibited from entering a patient's legal name or surname."),
-				GateBullet(lead: "Built-in Naming Conventions: ", detail: "You must exclusively use the app's structured identifiers (Ward/Bed numbers, pseudonyms, or aliases) in conjunction with the profile icon and colour to identify a patient.")
+				GateBullet(lead: "Built-in Naming Conventions: ", detail: "You must exclusively use the app's structured identifiers (Ward/Bed numbers, or characters) in conjunction with the profile icon and colour to identify a patient.")
 			]
 		),
 		GatePane(
@@ -134,12 +134,16 @@ struct PatientGateView: View {
 	
 	/// Fixed brand header shown above every pane
 	private var header: some View {
-		VStack(alignment: .leading, spacing: 16) {
-			Image(systemName: "person.crop.rectangle.stack.fill")
-				.font(.system(size: 96, weight: .semibold))
-				.foregroundStyle(.app(.accent))
-				.symbolEffect(.bounce, options: .repeat(.periodic(delay: 10)))
-			
+		VStack(alignment: .leading, spacing: 10) {
+			Image(systemName: "person.3.sequence.fill")
+				.symbolStyle(
+					SymbolStyle()
+						.hierarchical(Color.accent)
+						.gradient(false)
+						.effect(.variableColor(inactive: .dim, reverses: false))
+						.repeats(.periodic(delay: 3))
+						.speed(0.5))
+				.font(.system(size: 100))
 			VStack(alignment: .leading, spacing: 0) {
 				Text("Welcome to")
 					.font(.system(size: 32, weight: .bold))
@@ -148,6 +152,7 @@ struct PatientGateView: View {
 					.font(.system(size: 38, weight: .heavy))
 					.foregroundStyle(Color.accent)
 			}
+			.padding(.leading, 15)
 		}
 		.frame(maxWidth: .infinity, alignment: .leading)
 		.padding(.horizontal, 30)
@@ -164,25 +169,26 @@ struct PatientGateView: View {
 					.frame(width: 8 + 12 * activeness, height: 8)
 			}
 		}
-		.padding(.vertical, 16)
+		.padding(.vertical, 15)
 	}
 	
 	/// Final-pane call to action that opens declaration sheet
 	private var declarationButton: some View {
 		Button { showingDeclaration = true } label: {
-			Text("Legal Declaration & Acknowledgement")
+			Text("Legal Declaration")
 				.font(.headline)
 				.padding(.horizontal, 12)
 				.padding(.vertical, 4)
 		}
 		.buttonStyle(.glassProminent)
 		.tint(.accent)
-		.controlSize(.large)
+		.controlSize(.regular)
 		.opacity(ctaProgress)
 		.scaleEffect(0.85 + 0.15 * ctaProgress)
 		.offset(y: (1 - ctaProgress) * 30)
 		.allowsHitTesting(ctaProgress > 0.95)
-		.padding(.bottom, 20)
+		.padding(.bottom, 25)
+		.padding(.top, 5)
 		.frame(height: 80)
 	}
 }
@@ -254,7 +260,7 @@ private struct LegalDeclarationSheet: View {
 		VStack(alignment: .leading, spacing: 0) {
 			ScrollView {
 				VStack(alignment: .leading, spacing: 20) {
-					Text("Legal Declaration")
+					Text("Legal Declaration & Acknowledgement")
 						.font(.title2)
 						.fontWeight(.bold)
 					
