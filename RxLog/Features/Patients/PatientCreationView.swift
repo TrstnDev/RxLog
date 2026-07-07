@@ -13,6 +13,11 @@ struct PatientCreationView: View {
 	@Environment(\.dismiss) private var dismiss
 	@Environment(\.modelContext) private var modelContext
 	
+	// State of a brand-new, untouched patient creation view
+	private static let defaultGlyph: AvatarGlyph = .seal
+	private static let defaultGradient: AppGradient = .accent
+	private static let defaultAlias: PatientAlias = .character("A", script: .latin)
+	
 	@State private var glyph: AvatarGlyph = .seal
 	@State private var scrolledGlyph: AvatarGlyph? = .seal
 	@State private var gradient: AppGradient = .dusk
@@ -25,6 +30,28 @@ struct PatientCreationView: View {
 	@State private var ageExpanded = false
 	@State private var sexGenderExpanded = false
 	@State private var hivExpanded = false
+	
+	// Validation alerts
+	@State private var showDiscardConfirmation = false
+	@State private var showDuplicateWarning = false
+	
+	// MARK: - Derived validation states
+	
+	private var avatarPersonalized: Bool {
+		glyph != Self.defaultGlyph || gradient != Self.defaultGradient
+	}
+	
+	private var aliasPersonalized: Bool {
+		alias != Self.defaultAlias
+	}
+	
+	private var canSave: Bool {
+		avatarPersonalized && aliasPersonalized
+	}
+	
+	private var hasUnsavedChanges: Bool {
+		avatarPersonalized || aliasPersonalized || demographics != PatientDemographics()
+	}
 	
 	var body: some View {
 		NavigationStack {
@@ -43,15 +70,29 @@ struct PatientCreationView: View {
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
 				ToolbarItem(placement: .topBarLeading) {
-					Button { dismiss() } label: {
+					Button(action: attemptDismiss) {
 						Image(systemName: "chevron.backward")
 					}
 				}
 				ToolbarItem(placement: .topBarTrailing) {
-					Button(action: save) {
+					Button(action: attemptSave) {
 						Image(systemName: "checkmark")
 					}
+					.buttonStyle(.glassProminent)
+					.tint(.accent)
+					.disabled(!canSave)
 				}
+			}
+			.alert("Discard this patient?", isPresented: $showDiscardConfirmation) {
+				Button("Discard", role: .destructive) { dismiss() }
+				Button("Keep Editing", role: .cancel) { }
+			} message: {
+				Text("This profile hasn't been saved yet. Your progress will be lost.")
+			}
+			.alert("Duplicate patient", isPresented: $showDuplicateWarning) {
+				Button("OK", role: .cancel) { }
+			} message: {
+				Text("A patient with this same symbol, colour, and alias already exists. Change any one of the three to create a distinct profile.")
 			}
 		}
 	}
@@ -152,6 +193,7 @@ struct PatientCreationView: View {
 		} label: {
 			HStack {
 				Text(title)
+					.foregroundStyle(.primary)
 				Spacer(minLength: 8)
 				if !isExpanded.wrappedValue {
 					Text(summary)
@@ -268,7 +310,30 @@ struct PatientCreationView: View {
 		}
 	}
 	
-	// MARK: - Persistence
+	// MARK: - Actions
+	
+	private func attemptDismiss() {
+		if hasUnsavedChanges {
+			showDiscardConfirmation = true
+		} else {
+			dismiss()
+		}
+	}
+	
+	private func attemptSave() {
+		if isDuplicateIdentity() {
+			showDuplicateWarning = true
+		} else {
+			save()
+		}
+	}
+	
+	private func isDuplicateIdentity() -> Bool {
+		let now = Date.now
+		let descriptor = FetchDescriptor<Patient>(predicate: #Predicate { $0.expiresAt > now })
+		guard let active = try? modelContext.fetch(descriptor) else { return false }
+		return active.contains { $0.glyph == glyph && $0.gradient == gradient && $0.alias == alias }
+	}
 	
 	private func save() {
 		let patient = Patient(alias: alias, glyph: glyph, gradient: gradient, demographics: demographics)
@@ -296,6 +361,7 @@ private struct HIVStatusEditor: View {
 			
 			lastTestedField
 		}
+		.padding(.trailing, 4)
 	}
 	
 	@ViewBuilder private var statusFields: some View {
