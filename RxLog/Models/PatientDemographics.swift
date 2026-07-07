@@ -124,9 +124,11 @@ nonisolated struct HIVStatus: Codable, Hashable {
 	var status: Status
 	var lastTestDate: Date?
 	var arvsPrescribed: Bool
-	var compliant: Bool
-	var regimen: String
+	var arvRegimen: String
+	var arvCompliant: Bool
 	var onPrEP: Bool
+	var prepRegimen: String
+	var prepCompliant: Bool
 	
 	nonisolated enum Status: String, Codable, CaseIterable, Identifiable {
 		case positive, negative, unknown
@@ -144,15 +146,19 @@ nonisolated struct HIVStatus: Codable, Hashable {
 		status: Status = .unknown,
 		lastTestDate: Date? = nil,
 		arvsPrescribed: Bool = false,
-		compliant: Bool = false,
-		regimen: String = "",
-		onPrEP: Bool = false
+		arvRegimen: String = "",
+		arvCompliant: Bool = false,
+		onPrEP: Bool = false,
+		prepRegimen: String = "",
+		prepCompliant: Bool = false
 	) {
 		self.status = status
 		self.lastTestDate = lastTestDate
 		self.arvsPrescribed = arvsPrescribed
-		self.compliant = compliant
-		self.regimen = regimen
+		self.arvRegimen = arvRegimen
+		self.arvCompliant = arvCompliant
 		self.onPrEP = onPrEP
+		self.prepRegimen = prepRegimen
+		self.prepCompliant = prepCompliant
 	}
 }

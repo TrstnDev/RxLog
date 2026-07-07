@@ -17,10 +17,14 @@ struct PatientCreationView: View {
 	@State private var scrolledGlyph: AvatarGlyph? = .seal
 	@State private var gradient: AppGradient = .dusk
 	@State private var scrolledGradient: AppGradient? = .dusk
-	
 	@State private var alias: PatientAlias = .character("A", script: .latin)
 	@State private var demographics = PatientDemographics()
+	
+	// Disclosure sections own their own expansion
 	@State private var aliasExpanded = true
+	@State private var ageExpanded = false
+	@State private var sexGenderExpanded = false
+	@State private var hivExpanded = false
 	
 	var body: some View {
 		NavigationStack {
@@ -29,7 +33,6 @@ struct PatientCreationView: View {
 					VStack(spacing: 8) {
 						PatientCard(glyph: glyph, gradient: gradient, glyphSize: 100)
 							.frame(width: 180, height: 180)
-						
 						avatarEditor
 					}
 					sections
@@ -114,38 +117,238 @@ struct PatientCreationView: View {
 	
 	private var sections: some View {
 		VStack(spacing: 0) {
-			DisclosureSection(title: "Alias", isExpanded: $aliasExpanded) {
+			disclosure("Alias", summary: alias.displayName, isExpanded: $aliasExpanded) {
 				AliasEditor(alias: $alias)
 			}
-			Divider().padding(.leading, 20)
-			sectionRow("Age")
-			Divider().padding(.leading, 20)
-			sectionRow("Sex & Gender Expression")
-			Divider().padding(.leading, 20)
-			sectionRow("HIV Status")
+			rowDivider
+			disclosure("Age", summary: ageSummary, isExpanded: $ageExpanded, onExpand: seedAgeIfNeeded) {
+				ageEditor
+			}
+			rowDivider
+			disclosure("Sex & Gender", summary: sexGenderSummary, isExpanded: $sexGenderExpanded) {
+				sexGenderEditor
+			}
+			rowDivider
+			disclosure("HIV Status", summary: hivSummary, isExpanded: $hivExpanded, onExpand: seedHIVIfNeeded) {
+				hivEditor
+			}
 		}
 		.background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
 	}
 	
-	private func sectionRow(_ title: String) -> some View {
-		HStack {
-			Text(title)
-			Spacer()
-			Image(systemName: "chevron.right")
-				.font(.footnote.weight(.semibold))
+	private var rowDivider: some View { Divider().padding(.leading, 20) }
+	
+	private func disclosure<Content: View>(
+		_ title: String,
+		summary: String,
+		isExpanded: Binding<Bool>,
+		onExpand: @escaping () -> Void = {},
+		@ViewBuilder content: @escaping () -> Content
+	) -> some View {
+		DisclosureGroup(isExpanded: expansionBinding(isExpanded, onExpand: onExpand)) {
+			content()
+				.padding(.top, 6)
+				.padding(.bottom, 16)
+		} label: {
+			HStack {
+				Text(title)
+				Spacer(minLength: 8)
+				if !isExpanded.wrappedValue {
+					Text(summary)
+						.foregroundStyle(.secondary)
+						.lineLimit(1)
+				}
+			}
+			.padding(.vertical, 14)
+			.contentShape(Rectangle())
 		}
-		.foregroundStyle(.secondary)
 		.padding(.horizontal, 20)
-		.padding(.vertical, 18)
-		.contentShape(Rectangle())
 	}
 	
-	// MARK: - Save
+	private func expansionBinding(_ state: Binding<Bool>, onExpand: @escaping () -> Void) -> Binding<Bool> {
+		Binding(
+			get: { state.wrappedValue },
+			set: { expanding in
+				if expanding { onExpand() }
+				withAnimation(.snappy(duration: 0.3)) { state.wrappedValue = expanding }
+			}
+		)
+	}
+	
+	private func seedAgeIfNeeded() {
+		if demographics.age == nil { demographics.age = PatientAge(value: 30, unit: .years) }
+	}
+	
+	private func seedHIVIfNeeded() {
+		if demographics.hiv == nil { demographics.hiv = HIVStatus() }
+	}
+	
+	// MARK: - Collapsed-row summaries
+	
+	private var ageSummary: String { demographics.age?.displayString ?? "Not specified" }
+	private var sexGenderSummary: String { demographics.gender?.label ?? demographics.biologicalSex?.label ?? "Not specified" }
+	private var hivSummary: String { demographics.hiv?.status.label ?? "Not recorded" }
+	
+	// MARK: - Age
+	
+	private var ageEditor: some View {
+		Group {
+			if let age = Binding($demographics.age) {
+				VStack(spacing: 12) {
+					Picker("Unit", selection: age.unit) {
+						ForEach(PatientAge.Unit.allCases) { Text($0.label).tag($0) }
+					}
+					.pickerStyle(.segmented)
+					.labelsHidden()
+					
+					Picker("Age", selection: age.value) {
+						ForEach(0...120, id: \.self) { Text("\($0)").tag($0) }
+					}
+					.pickerStyle(.wheel)
+					.labelsHidden()
+					.frame(height: 130)
+				}
+			}
+		}
+	}
+	
+	// MARK: - Sex & Gender
+	
+	private var sexGenderEditor: some View {
+		VStack(alignment: .leading, spacing: 18) {
+			demographicField("Biological Sex", selection: $demographics.biologicalSex, options: BiologicalSex.allCases) { $0.label }
+			demographicField("Gender", selection: $demographics.gender, options: Gender.allCases) { $0.label }
+			demographicField("Pronouns", selection: $demographics.pronouns, options: Pronouns.allCases) { $0.label }
+		}
+	}
+	
+	private func demographicField<T: Identifiable & Hashable>(
+		_ caption: String,
+		selection: Binding<T?>,
+		options: [T],
+		label: @escaping (T) -> String
+	) -> some View {
+		VStack(alignment: .leading, spacing: 8) {
+			Text(caption)
+				.font(.subheadline.weight(.semibold))
+				.foregroundStyle(.secondary)
+			Menu {
+				Picker(caption, selection: selection) {
+					Text("Not specified").tag(T?.none)
+					ForEach(options) { option in
+						Text(label(option)).tag(T?.some(option))
+					}
+				}
+			} label: {
+				HStack {
+					Text(selection.wrappedValue.map(label) ?? "Not specified")
+						.foregroundStyle(selection.wrappedValue == nil ? .secondary : .primary)
+						.lineLimit(1)
+					Spacer()
+					Image(systemName: "chevron.up.chevron.down")
+						.font(.footnote.weight(.semibold))
+						.foregroundStyle(.secondary)
+				}
+				.padding(.horizontal, 14)
+				.padding(.vertical, 11)
+				.background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+			}
+			.buttonStyle(.plain)   // render the label as a neutral field, not a tinted button
+		}
+	}
+	
+	// MARK: - HIV
+	
+	private var hivEditor: some View {
+			// Seeded on expand, so this unwrap succeeds while the section is open.
+		Group {
+			if let hiv = Binding($demographics.hiv) {
+				HIVStatusEditor(hiv: hiv)
+			}
+		}
+	}
+	
+	// MARK: - Persistence
 	
 	private func save() {
 		let patient = Patient(alias: alias, glyph: glyph, gradient: gradient, demographics: demographics)
 		modelContext.insert(patient)
 		dismiss()
+	}
+}
+
+// MARK: - HIV status editor
+
+private struct HIVStatusEditor: View {
+	@Binding var hiv: HIVStatus
+	
+	var body: some View {
+		VStack(alignment: .leading, spacing: 16) {
+			Picker("Status", selection: $hiv.status) {
+				ForEach(HIVStatus.Status.allCases) { Text($0.label).tag($0) }
+			}
+			.pickerStyle(.segmented)
+			.labelsHidden()
+			
+				// The visible fields are a pure function of `status`; no imperative show/hide.
+			statusFields
+				.animation(.snappy(duration: 0.28), value: hiv.status)
+			
+			lastTestedField
+		}
+	}
+	
+	@ViewBuilder private var statusFields: some View {
+		switch hiv.status {
+		case .positive:
+			VStack(alignment: .leading, spacing: 16) {
+				Toggle("On antiretrovirals (ARVs)", isOn: $hiv.arvsPrescribed)
+				if hiv.arvsPrescribed {
+					regimenField("ARV regimen (e.g. TDF/3TC/DTG)", text: $hiv.arvRegimen)
+					Toggle("Adherent to ARVs", isOn: $hiv.arvCompliant)
+				}
+			}
+				// Keyed to the toggle, not to `hiv` as a whole, so typing the regimen doesn't animate.
+			.animation(.snappy(duration: 0.28), value: hiv.arvsPrescribed)
+		case .negative:
+			VStack(alignment: .leading, spacing: 16) {
+				Toggle("On PrEP", isOn: $hiv.onPrEP)
+				if hiv.onPrEP {
+					regimenField("PrEP regimen (e.g. TDF/FTC)", text: $hiv.prepRegimen)
+					Toggle("Adherent to PrEP", isOn: $hiv.prepCompliant)
+				}
+			}
+			.animation(.snappy(duration: 0.28), value: hiv.onPrEP)
+		case .unknown:
+			EmptyView()
+		}
+	}
+	
+	private var lastTestedField: some View {
+		VStack(alignment: .leading, spacing: 16) {
+			Toggle("Last test date known", isOn: lastTestedKnown)
+			if let date = Binding($hiv.lastTestDate) {
+					// `in: ...Date.now` forbids future dates; `.date` drops the time component.
+				DatePicker("Last tested", selection: date, in: ...Date.now, displayedComponents: .date)
+			}
+		}
+		.animation(.snappy(duration: 0.28), value: hiv.lastTestDate != nil)
+	}
+	
+	private var lastTestedKnown: Binding<Bool> {
+		Binding(
+			get: { hiv.lastTestDate != nil },
+			set: { hiv.lastTestDate = $0 ? Date.now : nil }
+		)
+	}
+	
+		// Modern filled text field, replacing the dated bezeled `.roundedBorder` look.
+	private func regimenField(_ placeholder: String, text: Binding<String>) -> some View {
+		TextField(placeholder, text: text)
+			.textFieldStyle(.plain)
+			.padding(.horizontal, 14)
+			.padding(.vertical, 11)
+			.background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 	}
 }
 
@@ -236,6 +439,7 @@ private struct NotchedPanel: Shape {
 /// Collapsible section: tappable header with chevron revealing its content
 private struct DisclosureSection<Content: View>: View {
 	let title: String
+	var summary: String? = nil          // optional collapsed-state value; defaulted so existing calls are unaffected
 	@Binding var isExpanded: Bool
 	@ViewBuilder var content: () -> Content
 	
@@ -244,9 +448,15 @@ private struct DisclosureSection<Content: View>: View {
 			Button {
 				withAnimation(.snappy) { isExpanded.toggle() }
 			} label: {
-				HStack {
+				HStack(spacing: 8) {
 					Text(title)
-					Spacer()
+					Spacer(minLength: 8)
+						// Surface the current value inline when collapsed, the way Settings rows do.
+					if let summary, !isExpanded {
+						Text(summary)
+							.foregroundStyle(.tertiary)
+							.lineLimit(1)
+					}
 					Image(systemName: "chevron.right")
 						.font(.footnote.weight(.semibold))
 						.rotationEffect(.degrees(isExpanded ? 90 : 0))
@@ -257,7 +467,6 @@ private struct DisclosureSection<Content: View>: View {
 				.contentShape(Rectangle())
 			}
 			.buttonStyle(.plain)
-			
 			if isExpanded {
 				content()
 					.padding(.horizontal, 20)
