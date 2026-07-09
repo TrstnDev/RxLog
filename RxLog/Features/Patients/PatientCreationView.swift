@@ -15,14 +15,14 @@ struct PatientCreationView: View {
 	
 	// State of a brand-new, untouched patient creation view
 	private static let defaultGlyph: AvatarGlyph = .seal
-	private static let defaultGradient: AppGradient = .accent
+	private static let defaultGradient: AppGradient = .berry
 	private static let defaultAlias: PatientAlias = .character("A", script: .latin)
 	
-	@State private var glyph: AvatarGlyph = .seal
-	@State private var scrolledGlyph: AvatarGlyph? = .seal
-	@State private var gradient: AppGradient = .dusk
-	@State private var scrolledGradient: AppGradient? = .dusk
-	@State private var alias: PatientAlias = .character("A", script: .latin)
+	@State private var glyph: AvatarGlyph = Self.defaultGlyph
+	@State private var scrolledGlyph: AvatarGlyph? = Self.defaultGlyph
+	@State private var gradient: AppGradient = Self.defaultGradient
+	@State private var scrolledGradient: AppGradient? = Self.defaultGradient
+	@State private var alias: PatientAlias = Self.defaultAlias
 	@State private var demographics = PatientDemographics()
 	
 	// Disclosure sections own their own expansion

@@ -11,8 +11,6 @@ import SwiftData
 struct PatientDetailView: View {
 	let patient: Patient
 	
-	@Environment(\.dismiss) private var dismiss
-	
 	@State private var logsExpanded = true
 	
 	// Dark, gradient-hued ink for everything sitting over the light upper region

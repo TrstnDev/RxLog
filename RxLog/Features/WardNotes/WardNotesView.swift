@@ -42,6 +42,8 @@ struct WardNotesView: View {
 			content(sections: sections, visibleNotes: visibleNotes)
 				.navigationTitle(navTitle)
 				.navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
+				.searchable(text: $searchText, prompt: "Search notes")
+				.searchToolbarBehavior(.minimize)
 				.toolbar { toolbarContent(visibleNotes: visibleNotes) }
 				.toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
 				.overlay(alignment: .bottomTrailing) {
@@ -79,20 +81,20 @@ struct WardNotesView: View {
 					toggleSelectAll(in: visibleNotes)
 				}
 			}
-            
+			
 			ToolbarItem(placement: .topBarTrailing) {
 				Button("Done") { setSelecting(false) }
 					.fontWeight(.semibold)
 			}
-            
+			
 			ToolbarItemGroup(placement: .bottomBar) {
 				ShareLink(item: shareText) {
 					Label("Share", systemImage: "square.and.arrow.up")
 				}
 				.disabled(selectedNoteIDs.isEmpty)
-                
+				
 				Spacer()
-                
+				
 				Button {
 					favouriteSelected()
 				} label: {
@@ -102,9 +104,9 @@ struct WardNotesView: View {
 					)
 				}
 				.disabled(selectedNoteIDs.isEmpty)
-                
+				
 				Spacer()
-                
+				
 				Button(role: .destructive) {
 					showingDeleteConfirmation = true
 				} label: {
@@ -114,22 +116,57 @@ struct WardNotesView: View {
 			}
 		} else {
 			ToolbarItem(placement: .topBarTrailing) {
-				Button("Select") { setSelecting(true) }
-					.disabled(visibleNotes.isEmpty)
+				Menu {
+					Section {
+						Button("Select", systemImage: "checkmark.circle") {
+							setSelecting(true)
+						}
+						.disabled(visibleNotes.isEmpty)
+						
+						Button {
+							showingFilter = true
+						} label: {
+							Label(
+								"Filter",
+								systemImage: filter.isActive
+								? "line.3.horizontal.decrease.circle.fill"
+								: "line.3.horizontal.decrease.circle"
+							)
+						}
+					}
+					
+					Section {
+						Picker("Display Style", selection: $displayStyle) {
+							ForEach(NoteDisplayStyle.allCases) { style in
+								Label(style.label, systemImage: style.systemImage).tag(style)
+							}
+						}
+						.pickerStyle(.inline)
+					}
+					
+					Section {
+						Picker("Sort By", selection: $sortOption) {
+							ForEach(NoteSortOption.allCases) { option in
+								Text(option.label).tag(option)
+							}
+						}
+						.pickerStyle(.inline)
+					}
+					
+					Section {
+						Button("Export", systemImage: "square.and.arrow.up") { }
+						Button("Stats", systemImage: "chart.bar") { }
+					}
+				} label: {
+					Image(systemName: "ellipsis")
+				}
+				.accessibilityLabel("Options")
 			}
-            
-			ToolbarItem(placement: .topBarTrailing) {
-				filterButton
-			}
-            
-			ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            
-			ToolbarItem(placement: .topBarTrailing) {
-				optionsMenu
-			}
+			
+			DefaultToolbarItem(kind: .search, placement: .topBarLeading)
 		}
 	}
-    
+			
 	// MARK: - Content
     
 	@ViewBuilder
@@ -151,7 +188,6 @@ struct WardNotesView: View {
 		switch displayStyle {
 		case .waterfall:
 			ScrollView {
-				searchBar
 				if visibleNotes.isEmpty {
 					noResults
 				} else {
@@ -167,7 +203,6 @@ struct WardNotesView: View {
             
 		case .grid:
 			ScrollView {
-				searchBar
 				if visibleNotes.isEmpty {
 					noResults
 				} else {
@@ -182,31 +217,78 @@ struct WardNotesView: View {
             
 		case .list:
 			ScrollView {
-				searchBar
 				if visibleNotes.isEmpty {
 					noResults
 				} else {
 					// Pinned headers + lazy rows
-					LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
-						ForEach(sections) { section in
-							Section {
-								ForEach(section.notes) { note in
-									listRow(note)
-										.padding(.horizontal)
+					if #available(iOS 27.0, *) {
+						LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
+							ForEach(sections) { section in
+								Section {
+									ForEach(section.notes) { note in
+										listRow(note)
+											.padding(.horizontal)
+											.swipeActions(edge: .leading) {
+												if !isSelecting {
+													Button {
+														note.isFavourite.toggle()
+													} label: {
+														Label(note.isFavourite ? "Unfavourite" : "Favourite",
+															  systemImage: note.isFavourite ? "star.slash" : "star")
+													}
+													.tint(.yellow)
+												}
+											}
+											.swipeActions(edge: .trailing) {
+												if !isSelecting {
+													Button(role: .destructive) {
+														modelContext.delete(note)
+													} label: {
+														Label("Delete", systemImage: "trash")
+													}
+												}
+											}
+									}
+								} header: {
+									if let title = section.title {
+										Text(title)
+											.font(.headline.weight(.semibold))
+											.foregroundStyle(.secondary)
+											.frame(maxWidth: .infinity, alignment: .leading)
+											.padding(.horizontal)
+											.padding(.vertical, 9)
+											// Frosted backing keeps pinned headers legible as rows scroll beneath
+											.background {
+												Color(.systemBackground).opacity(0.5)
+													.background(.ultraThinMaterial)
+											}
+									}
 								}
-							} header: {
-								if let title = section.title {
-									Text(title)
-										.font(.headline.weight(.semibold))
-										.foregroundStyle(.secondary)
-										.frame(maxWidth: .infinity, alignment: .leading)
-										.padding(.horizontal)
-										.padding(.vertical, 9)
-										// Frosted backing keeps pinned headers legible as rows scroll beneath
-										.background {
-											Color(.systemBackground).opacity(0.5)
-												.background(.ultraThinMaterial)
-										}
+							}
+						}
+						.swipeActionsContainer()
+					} else {
+						LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
+							ForEach(sections) { section in
+								Section {
+									ForEach(section.notes) { note in
+										listRow(note)
+											.padding(.horizontal)
+									}
+								} header: {
+									if let title = section.title {
+										Text(title)
+											.font(.headline.weight(.semibold))
+											.foregroundStyle(.secondary)
+											.frame(maxWidth: .infinity, alignment: .leading)
+											.padding(.horizontal)
+											.padding(.vertical, 9)
+											// Frosted backing keeps pinned headers legible as rows scroll beneath
+											.background {
+												Color(.systemBackground).opacity(0.5)
+													.background(.ultraThinMaterial)
+											}
+									}
 								}
 							}
 						}
@@ -306,12 +388,6 @@ struct WardNotesView: View {
     
 	// MARK: - Subviews
     
-	private var searchBar: some View {
-		SearchBar(text: $searchText)
-			.padding(.horizontal)
-			.padding(.vertical, 8)
-	}
-    
 	private var noResults: some View {
 		Group {
 			if !searchText.isEmpty {
@@ -359,31 +435,6 @@ struct WardNotesView: View {
 		let note = Note()
 		modelContext.insert(note)
 		editingNote = note
-	}
-    
-	/// Overflow menu: sort, layout, and stubbed export/stats
-	private var optionsMenu: some View {
-		Menu {
-			Picker("Sort By", selection: $sortOption) {
-				ForEach(NoteSortOption.allCases) { option in
-					Text(option.label).tag(option)
-				}
-			}
-            
-			Picker("Display Style", selection: $displayStyle) {
-				ForEach(NoteDisplayStyle.allCases) { style in
-					Label(style.label, systemImage: style.systemImage).tag(style)
-				}
-			}
-            
-			Divider()
-            
-			// Not yet implemented
-			Button("Export", systemImage: "square.and.arrow.up") {}
-			Button("Stats", systemImage: "chart.bar") {}
-		} label: {
-			Label("Options", systemImage: "ellipsis")
-		}
 	}
 }
 

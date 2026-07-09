@@ -39,7 +39,7 @@ struct OnboardingView: View {
 	
 	@State private var hasAppeared = false
 
-	private let pages: [OnboardingPage] = [
+	private static let pages: [OnboardingPage] = [
 		OnboardingPage(
 			symbol: "heart.text.square.fill",
 			title: "Histories at hand",
@@ -74,8 +74,7 @@ struct OnboardingView: View {
 
 	/// Reveal progress (0...1) of the final-pane Continue button
 	private var ctaProgress: CGFloat {
-		guard pages.count >= 2 else { return 0 }
-		return min(max(pageProgress - CGFloat(pages.count - 2), 0), 1)
+		PagedCarousel.ctaProgress(pageProgress: pageProgress, pageCount: Self.pages.count)
 	}
 	
 	private func isCurrent(_ index: Int) -> Bool {
@@ -120,7 +119,7 @@ struct OnboardingView: View {
 	private var pager: some View {
 		ScrollView(.horizontal) {
 			HStack(spacing: 0) {
-				ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
+				ForEach(Array(Self.pages.enumerated()), id: \.element.id) { index, page in
 					PaneView(page: page, isCurrent: isCurrent(index))
 						.containerRelativeFrame(.horizontal)
 				}
@@ -128,26 +127,13 @@ struct OnboardingView: View {
 		}
 		.scrollTargetBehavior(.paging)
 		.scrollIndicators(.hidden)
-		.onScrollGeometryChange(for: CGFloat.self) { geo in
-			let totalWidth = geo.contentSize.width
-			guard totalWidth > 0 else { return 0 }
-			return geo.contentOffset.x / (totalWidth / CGFloat(pages.count))
-		} action: { _, newValue in
-			pageProgress = newValue
-		}
+		.pageProgressTracking(pageCount: Self.pages.count, into: $pageProgress)
 	}
 	
 	private var indicator: some View {
-		HStack(spacing: 8) {
-			ForEach(pages.indices, id: \.self) { i in
-				let activeness = max(0, 1 - abs(pageProgress - CGFloat(i)))
-				Capsule()
-					.fill(Color.primary.opacity(0.3 + 0.7 * activeness))
-					.frame(width: 8 + 12 * activeness, height: 8)
-			}
-		}
-		.padding(.top, 8)
-		.padding(.bottom, 15)
+		ScrollPageIndicator(progress: pageProgress, count: Self.pages.count)
+			.padding(.top, 8)
+			.padding(.bottom, 15)
 	}
 	
 	private var continueButton: some View {
@@ -160,10 +146,7 @@ struct OnboardingView: View {
 		.buttonStyle(.glassProminent)
 		.tint(.accent)
 		.controlSize(.large)
-		.opacity(ctaProgress)
-		.scaleEffect(0.85 + 0.15 * ctaProgress)
-		.offset(y: (1 - ctaProgress) * 30)
-		.allowsHitTesting(ctaProgress > 0.95)
+		.ctaReveal(ctaProgress)
 		.frame(height: 80)
 	}
 }

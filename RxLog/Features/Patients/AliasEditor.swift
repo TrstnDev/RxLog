@@ -23,7 +23,7 @@ enum AliasPools {
 
 // MARK: - Alias Editor
 
-/// Edits a patient's ``PatientAlias`` via three methods
+/// Edits a patient's ``PatientAlias`` via two methods
 struct AliasEditor: View {
 	@Binding var alias: PatientAlias
 	

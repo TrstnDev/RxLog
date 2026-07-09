@@ -74,7 +74,11 @@ private struct PatientsHome: View {
 		switch sortOption {
 		case .recentlyAdded: patients
 		case .expiringSoon: patients.sorted { $0.expiresAt < $1.expiresAt }
-		case .name: patients.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+		case .name:
+			patients
+				.map { (name: $0.displayName, patient: $0) }
+				.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+				.map { $0.patient }
 		}
 	}
 	
@@ -126,10 +130,7 @@ private struct PatientsHome: View {
 		PatientCard(patient: patient)
 			.overlay(alignment: .topTrailing) {
 				if isSelecting {
-					Image(systemName: selection.contains(patient.id) ? "checkmark.circle.fill" : "circle")
-						.font(.title2)
-						.foregroundStyle(.white)
-						.opacity(selection.contains(patient.id) ? 1 : 0.7)
+					SelectionIndicator(isSelected: selection.contains(patient.id))
 						.padding(10)
 				}
 			}

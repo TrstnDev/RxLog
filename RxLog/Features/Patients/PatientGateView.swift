@@ -48,7 +48,7 @@ struct PatientGateView: View {
 	@State private var pageProgress: CGFloat = 0
 	@State private var showingDeclaration = false
 	
-	private let panes: [GatePane] = [
+	private static let panes: [GatePane] = [
 		GatePane(
 			icon: nil,
 			heading: nil,
@@ -91,8 +91,7 @@ struct PatientGateView: View {
 	
 	/// Reveal progress (0...1) of final pane declaration button
 	private var ctaProgress: CGFloat {
-		guard panes.count >= 2 else { return 0 }
-		return min(max(pageProgress - CGFloat(panes.count - 2), 0), 1)
+		PagedCarousel.ctaProgress(pageProgress: pageProgress, pageCount: Self.panes.count)
 	}
 	
 	var body: some View {
@@ -102,7 +101,7 @@ struct PatientGateView: View {
 			// Swipeable panes
 			ScrollView(.horizontal) {
 				HStack(spacing: 0) {
-					ForEach(panes) { pane in
+					ForEach(Self.panes) { pane in
 						GatePaneView(pane: pane)
 							.containerRelativeFrame(.horizontal)
 					}
@@ -110,13 +109,7 @@ struct PatientGateView: View {
 			}
 			.scrollTargetBehavior(.paging)
 			.scrollIndicators(.hidden)
-			.onScrollGeometryChange(for: CGFloat.self) { geo in
-				let totalWidth = geo.contentSize.width
-				guard totalWidth > 0 else { return 0 }
-				return geo.contentOffset.x / (totalWidth / CGFloat(panes.count))
-			} action: { _, newValue in
-				pageProgress = newValue
-			}
+			.pageProgressTracking(pageCount: Self.panes.count, into: $pageProgress)
 			
 			indicator
 			
@@ -161,15 +154,8 @@ struct PatientGateView: View {
 	
 	/// Scroll-driven page indicator
 	private var indicator: some View {
-		HStack(spacing: 8) {
-			ForEach(panes.indices, id: \.self) { i in
-				let activeness = max(0, 1 - abs(pageProgress - CGFloat(i)))
-				Capsule()
-					.fill(Color.primary.opacity(0.3 + 0.7 * activeness))
-					.frame(width: 8 + 12 * activeness, height: 8)
-			}
-		}
-		.padding(.vertical, 15)
+		ScrollPageIndicator(progress: pageProgress, count: Self.panes.count)
+			.padding(.vertical, 15)
 	}
 	
 	/// Final-pane call to action that opens declaration sheet
@@ -183,10 +169,7 @@ struct PatientGateView: View {
 		.buttonStyle(.glassProminent)
 		.tint(.accent)
 		.controlSize(.regular)
-		.opacity(ctaProgress)
-		.scaleEffect(0.85 + 0.15 * ctaProgress)
-		.offset(y: (1 - ctaProgress) * 30)
-		.allowsHitTesting(ctaProgress > 0.95)
+		.ctaReveal(ctaProgress)
 		.padding(.bottom, 25)
 		.padding(.top, 5)
 		.frame(height: 80)
