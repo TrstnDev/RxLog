@@ -238,7 +238,7 @@ struct PatientDetailView: View {
 			patient: Patient(
 				alias: .character("A", script: .latin),
 				glyph: .seal,
-				gradient: .volt,
+				gradient: .winter,
 				demographics: PatientDemographics(
 					age: PatientAge(value: 27, unit: .years),
 					biologicalSex: .male,
