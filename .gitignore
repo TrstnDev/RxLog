@@ -32,3 +32,6 @@ fastlane/test_output/
 # Repomix
 .repomixignore
 repomix.config.json
+
+# Ignore local design playground target
+DesignPlayground/

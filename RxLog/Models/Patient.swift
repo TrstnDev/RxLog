@@ -141,8 +141,8 @@ extension Patient {
 		[
 			Patient(alias: .pseudonym(first: "John", last: "Apple"), glyph: .seal, gradient: .berry),
 			Patient(alias: .pseudonym(first: "Jane", last: "Doe"), glyph: .circle, gradient: .dusk),
-			Patient(alias: .wardBed(ward: 5, bed: 10), glyph: .hexagon, gradient: .mandarin),
-			Patient(alias: .character("Y", script: .latin), glyph: .buttonAngledTopRight, gradient: .jade)
+			Patient(alias: .wardBed(ward: 5, bed: 10), glyph: .hexagon, gradient: .abyss),
+			Patient(alias: .character("Y", script: .latin), glyph: .buttonAngledTopRight, gradient: .lime)
 		]
 	}
 }

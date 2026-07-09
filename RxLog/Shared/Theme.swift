@@ -14,20 +14,20 @@ import SwiftUI
 ///
 /// `accent` is the reserved brand gradient; the remaining cases form the patient-profile palette
 nonisolated enum AppGradient: String, CaseIterable, Identifiable, Codable {
-	case accent 	= "AccentGradient"
+	case accent 	= "Accent"
+	case abyss		= "Abyss"
 	case berry 		= "Berry"
-	case mist		= "Mist"
-	case jade		= "Jade"
-	case dusk		= "Dusk"
-	case majorana	= "Majorana"
-	case juniper	= "Juniper"
-	case mandarin	= "Mandarin"
-	case mustard	= "Mustard"
-	case pacifica	= "Pacifica"
-	case bubblegum	= "Bubblegum"
 	case cacao		= "Cacao"
-	case pine		= "Pine"
-	case birch		= "Birch"
+	case dusk		= "Dusk"
+	case jade		= "Jade"
+	case lime		= "Lime"
+	case majorana	= "Majorana"
+	case moss		= "Moss"
+	case olive		= "Olive"
+	case petal		= "Petal"
+	case sunburn	= "Sunburn"
+	case volt		= "Volt"
+	case winter		= "Winter"
 	
 	var id: String { rawValue }
 	
@@ -41,6 +41,20 @@ nonisolated enum AppGradient: String, CaseIterable, Identifiable, Codable {
 	/// Builds gradient; defaults to a vertical top -> bottom sweep
 	func linear(startPoint: UnitPoint = .top, endPoint: UnitPoint = .bottom) -> LinearGradient {
 		LinearGradient(colors: [start, end], startPoint: startPoint, endPoint: endPoint)
+	}
+	
+	// Dark, gradient-hued colour for text and icons in patient detail view
+	var darkText: Color {
+		end.mix(with: .black, by: 0.45)
+	}
+	
+	// Brightened version of gradient for a glassy glyph hero
+	var glassGlyph: LinearGradient {
+		LinearGradient(
+			colors: [start.mix(with: .white, by: 0.5), end.mix(with: .white, by: 0.3)],
+			startPoint: .top,
+			endPoint: .bottom
+		)
 	}
 }
 
