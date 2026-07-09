@@ -35,9 +35,9 @@ struct PatientDetailView: View {
 			ToolbarItem(placement: .principal) {
 				VStack(spacing: 1) {
 					Text(patient.displayName)
-						.font(.system(size: 18, weight: .bold))
+						.font(.system(size: 16, weight: .bold))
 					Text("Added \(patient.createdAt.formatted(date: .numeric, time: .shortened))")
-						.font(.system(size: 13, weight: .medium))
+						.font(.system(size: 12, weight: .medium))
 						.opacity(0.6)
 				}
 				.lineLimit(1)
@@ -59,6 +59,7 @@ struct PatientDetailView: View {
 		.toolbarColorScheme(.light, for: .navigationBar)
 		.navigationBarTitleDisplayMode(.inline)
 		.environment(\.colorScheme, .dark)
+		.toolbarVisibility(.hidden, for: .tabBar)
 	}
 	
 	// MARK: - Hero

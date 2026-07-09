@@ -133,12 +133,135 @@ nonisolated enum AvatarGlyph: String, CaseIterable, Identifiable, Codable {
 
 #if DEBUG
 extension Patient {
+		/// Preview fixtures covering the demographic state space: both alias modes and
+		/// scripts, all four age units (including singular forms), every HIV pathway
+		/// (positive ± ARVs, negative ± PrEP, unknown, not recorded), partial and empty
+		/// profiles, pale and dark gradients, and a near-expiry profile.
 	static var samples: [Patient] {
-		[
-			Patient(alias: .character("J", script: .latin), glyph: .seal, gradient: .berry),
-			Patient(alias: .character("β", script: .greek), glyph: .circle, gradient: .dusk),
-			Patient(alias: .wardBed(ward: 5, bed: 10), glyph: .hexagon, gradient: .abyss),
-			Patient(alias: .character("Y", script: .latin), glyph: .buttonAngledTopRight, gradient: .lime)
+		let day: TimeInterval = 86_400
+		return [
+			// Fully recorded adult — HIV positive, on ARVs, adherent
+			Patient(
+				alias: .character("A", script: .latin),
+				glyph: .seal,
+				gradient: .berry,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 34, unit: .years),
+					biologicalSex: .female,
+					gender: .cisgenderFemale,
+					pronouns: .sheHer,
+					hiv: HIVStatus(
+						status: .positive,
+						lastTestDate: .now.addingTimeInterval(-90 * day),
+						arvsPrescribed: true,
+						arvRegimen: "TDF/3TC/DTG",
+						arvCompliant: true
+					)
+				)
+			),
+			// HIV negative, on PrEP, adherent
+			Patient(
+				alias: .wardBed(ward: 3, bed: 12),
+				glyph: .hexagon,
+				gradient: .jade,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 27, unit: .years),
+					biologicalSex: .male,
+					gender: .cisgenderMale,
+					pronouns: .heHim,
+					hiv: HIVStatus(
+						status: .negative,
+						lastTestDate: .now.addingTimeInterval(-30 * day),
+						onPrEP: true,
+						prepRegimen: "TDF/FTC",
+						prepCompliant: true
+					)
+				)
+			),
+			// Infant — age in months, HIV status not yet resolved
+			Patient(
+				alias: .character("β", script: .greek),
+				glyph: .circle,
+				gradient: .bubblegum,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 8, unit: .months),
+					biologicalSex: .female,
+					hiv: HIVStatus(status: .unknown)
+				)
+			),
+			// Neonate — singular age unit, intersex, minimal record
+			Patient(
+				alias: .wardBed(ward: 1, bed: 4),
+				glyph: .capsulePortrait,
+				gradient: .winter,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 1, unit: .weeks),
+					biologicalSex: .intersex
+				)
+			),
+			// Days-old neonate
+			Patient(
+				alias: .wardBed(ward: 1, bed: 7),
+				glyph: .ovalPortrait,
+				gradient: .petal,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 4, unit: .days),
+					biologicalSex: .female
+				)
+			),
+			// Empty profile — every demographic renders "Not recorded"
+			Patient(
+				alias: .character("ω", script: .greek),
+				glyph: .shield,
+				gradient: .abyss
+			),
+			// Transgender man — HIV negative, not on PrEP, tested a year ago
+			Patient(
+				alias: .character("K", script: .latin),
+				glyph: .diamond,
+				gradient: .violet,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 41, unit: .years),
+					biologicalSex: .female,
+					gender: .transgenderMan,
+					pronouns: .heHim,
+					hiv: HIVStatus(
+						status: .negative,
+						lastTestDate: .now.addingTimeInterval(-365 * day)
+					)
+				)
+			),
+			// Non-binary adult — HIV positive, ARVs prescribed, non-adherent
+			Patient(
+				alias: .wardBed(ward: 7, bed: 21),
+				glyph: .triangle,
+				gradient: .sunburn,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 19, unit: .years),
+					biologicalSex: .other,
+					gender: .nonBinary,
+					pronouns: .theyThem,
+					hiv: HIVStatus(
+						status: .positive,
+						arvsPrescribed: true,
+						arvRegimen: "TDF/3TC/DTG",
+						arvCompliant: false
+					)
+				)
+			),
+			// Elderly — created six days ago, expires tomorrow
+			Patient(
+				alias: .character("Z", script: .latin),
+				glyph: .pentagon,
+				gradient: .cacao,
+				demographics: PatientDemographics(
+					age: PatientAge(value: 78, unit: .years),
+					biologicalSex: .male,
+					gender: .cisgenderMale,
+					pronouns: .heHim
+				),
+				createdAt: .now.addingTimeInterval(-6 * day)
+			)
 		]
 	}
 }
