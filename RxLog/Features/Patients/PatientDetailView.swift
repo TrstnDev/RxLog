@@ -219,15 +219,14 @@ struct PatientDetailView: View {
 		DisclosureGroup(isExpanded: $logsExpanded) {
 			Text("No records logged yet.")
 				.font(.system(size: 16))
-				.foregroundStyle(.white.opacity(0.50))
 				.frame(maxWidth: .infinity, alignment: .leading)
 				.padding(.top, 10)
+				.reactiveContrast(for: patient.gradient)
 		} label: {
 			Text("Logs")
 				.font(.system(size: 18, weight: .bold))
 		}
-		.tint(.white)
-		.foregroundStyle(.white)
+		.reactiveContrast(for: patient.gradient)
 		.padding(.top, 16)
 	}
 }
@@ -238,7 +237,7 @@ struct PatientDetailView: View {
 			patient: Patient(
 				alias: .character("A", script: .latin),
 				glyph: .seal,
-				gradient: .winter,
+				gradient: .barbie,
 				demographics: PatientDemographics(
 					age: PatientAge(value: 27, unit: .years),
 					biologicalSex: .male,
