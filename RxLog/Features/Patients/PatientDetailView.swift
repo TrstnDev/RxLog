@@ -32,15 +32,6 @@ struct PatientDetailView: View {
 		}
 		.background { patient.gradient.linear().ignoresSafeArea() }
 		.toolbar {
-			ToolbarItem(placement: .topBarLeading) {
-				Button {
-					dismiss()
-				} label: {
-					Image(systemName: "chevron.backward")
-				}
-				.foregroundStyle(ink)
-				.accessibilityLabel("Back")
-			}
 			ToolbarItem(placement: .principal) {
 				VStack(spacing: 1) {
 					Text(patient.displayName)
@@ -58,15 +49,15 @@ struct PatientDetailView: View {
 					// TODO: overflow menu - edit details, delete
 				} label: {
 					Image(systemName: "ellipsis")
+						.foregroundStyle(ink.mix(with: .black, by: 0.5))
+						.fontWeight(.semibold)
 				}
-				.foregroundStyle(ink)
 				.accessibilityLabel("Options")
 			}
 		}
 		.toolbarBackground(.hidden, for: .navigationBar)
-		.toolbarColorScheme(.dark, for: .navigationBar)
+		.toolbarColorScheme(.light, for: .navigationBar)
 		.navigationBarTitleDisplayMode(.inline)
-		.navigationBarBackButtonHidden(true)
 		.environment(\.colorScheme, .dark)
 	}
 	
