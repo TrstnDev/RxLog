@@ -56,11 +56,11 @@ struct PatientCard: View {
 	
 	/// White alias text with a subtle top-to-bottom opacity fade
 	private var labelStyle: LinearGradient {
-		LinearGradient(colors: [.white, .white.opacity(0.6)], startPoint: .top, endPoint: .bottom)
+		LinearGradient(colors: [.white.opacity(0.8), .white.opacity(0.6)], startPoint: .top, endPoint: .bottom)
 	}
 	
 	var body: some View {
-		RoundedRectangle(cornerRadius: 30, style: .continuous)
+		RoundedRectangle(cornerRadius: 28, style: .continuous)
 			.fill(
 				gradient.linear()
 			)
@@ -71,19 +71,18 @@ struct PatientCard: View {
 					
 					if let label {
 						Text(label)
-							.font(.system(size: 15, weight: .heavy, design: .serif))
-							.italic()
-							.tracking(0.86)
+							.font(.system(size: 15, weight: .heavy, design: .default))
+							.tracking(0.5)
 							.foregroundStyle(labelStyle)
 							.lineLimit(1)
 							.minimumScaleFactor(0.7)
-							.frame(maxWidth: .infinity, alignment: .leading)
+							.frame(maxWidth: .infinity, alignment: .center)
 					}
 				}
 				.padding(18)
 			}
 			.aspectRatio(1, contentMode: .fit)
-			.shadow(color: .black.opacity(0.25), radius: 4, y: 4)
+			.shadow(color: .black.opacity(0.2), radius: 4, y: 2)
 	}
 }
 

@@ -57,7 +57,7 @@ nonisolated enum AppGradient: String, CaseIterable, Identifiable, Codable {
 	
 	// Bright, gradient-hued colour for text and icons in patient detail view (bottom of screen)
 	var lightText: Color {
-		start.mix(with: .white, by: 0.25)
+		start.mix(with: .white, by: 0.7)
 	}
 }
 
@@ -74,38 +74,24 @@ extension View {
 fileprivate struct ReactiveContrastModifier: ViewModifier {
 	let theme: AppGradient
 	
-	/// Retrieves height of the current active window scene
-	private var activeWindowHeight: CGFloat {
-		if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-			return windowScene.screen.bounds.height
-		}
-		return 852 	// Safe fallback (iPhone 15 Pro / standard bounds)
-	}
+	/// Transition zone as fractions of the viewport height
+	private let transitionStart: CGFloat = 0.55
+	private let transitionEnd: CGFloat = 0.65
+	
+	@State private var fraction: CGFloat = 0
 	
 	func body(content: Content) -> some View {
 		content
-			.hidden()	// reserved exact layout dimensions of text/icon
-			.overlay {
-				GeometryReader { geo in
-					let yPos = geo.frame(in: .global).midY
-					let linearFraction = max(0, min(1, yPos / activeWindowHeight))
-					
-					// Define tight transition zone
-					let transitionStart: CGFloat = 0.6
-					let transitionEnd: CGFloat = 0.7
-					
-					// Remap linear fraction so it only shifts within the window
-					let steepFraction = max(0, min(1, (linearFraction - transitionStart) / (transitionEnd - transitionStart)))
-					
-					// Apply mathematical smoothstep to prevent abrupt colour snapping
-					let smoothFraction = 4 * (steepFraction * steepFraction)
-					
-					// Mix the colours using the new highly contrasted S-Curve
-					let dynamicColor = theme.darkText.mix(with: theme.lightText, by: smoothFraction)
-					
-					content
-						.foregroundStyle(dynamicColor)
-				}
-			}
+			.foregroundStyle(theme.darkText.mix(with: theme.lightText, by: smoothed(fraction)))
+			.onGeometryChange(for: CGFloat.self) { proxy in
+				guard let viewport = proxy.bounds(of: .scrollView) else { return 0 }
+				return proxy.frame(in: .scrollView).midY / viewport.height
+			} action: { fraction = $0 }
+	}
+	
+	/// Remaps the raw viewport fraction into the transition zone, then applies smoothstep
+	private func smoothed(_ raw: CGFloat) -> CGFloat {
+		let t = min(max((raw - transitionStart) / (transitionEnd - transitionStart), 0), 1)
+		return t * t * (3 - 2 * t)
 	}
 }

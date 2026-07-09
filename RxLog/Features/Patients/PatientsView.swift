@@ -54,6 +54,7 @@ private struct PatientsHome: View {
 	@State private var selection = Set<Patient.ID>()
 	@State private var sortOption: SortOption = .recentlyAdded
 	@State private var showingCreation = false
+	@State private var viewingPatient: Patient?
 	
 	private let columns = [
 		GridItem(.flexible(), spacing: 16),
@@ -71,7 +72,7 @@ private struct PatientsHome: View {
 	/// Profiles ordered by the current sort choice
 	private var sortedPatients: [Patient] {
 		switch sortOption {
-		case .recentlyAdded: patients.sorted { $0.createdAt > $1.createdAt }
+		case .recentlyAdded: patients
 		case .expiringSoon: patients.sorted { $0.expiresAt < $1.expiresAt }
 		case .name: patients.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
 		}
@@ -90,6 +91,9 @@ private struct PatientsHome: View {
 					}
 				}
 				.animation(.snappy, value: isSelecting)
+				.navigationDestination(item: $viewingPatient) { patient in
+					PatientDetailView(patient: patient)
+				}
 		}
 		.fullScreenCover(isPresented: $showingCreation) {
 			PatientCreationView()
@@ -130,7 +134,11 @@ private struct PatientsHome: View {
 				}
 			}
 			.onTapGesture {
-				if isSelecting { toggleSelection(patient) }
+				if isSelecting {
+					toggleSelection(patient)
+				} else {
+					viewingPatient = patient
+				}
 			}
 			.contextMenu {
 				if !isSelecting {

@@ -10,6 +10,7 @@ import SwiftData
 
 struct PatientDetailView: View {
 	let patient: Patient
+	
 	@Environment(\.dismiss) private var dismiss
 	
 	@State private var logsExpanded = true
@@ -20,55 +21,53 @@ struct PatientDetailView: View {
 	var body: some View {
 		ScrollView {
 			VStack(spacing: 18) {
-				header
 				hero
 				actionRows
 				addExamination
 				logsSection
 			}
 			.padding(.horizontal, 16)
-			.padding(.top, 8)
+			.padding(.top, 15)
 			.padding(.bottom, 32)
 		}
 		.background { patient.gradient.linear().ignoresSafeArea() }
-		.toolbar(.hidden, for: .navigationBar)
-		.preferredColorScheme(.dark)
-	}
-	
-	// MARK: - Header
-	
-	private var header: some View {
-		HStack {
-			circleButton("chevron.backward") { dismiss() }
-			Spacer()
-			circleButton("ellipsis") { /* TODO: overflow menu */}
-		}
-		.overlay {
-			VStack(spacing: 1) {
-				Text(patient.displayName)
-					.font(.system(size: 18, weight: .bold))
-				Text("Added \(patient.createdAt.formatted(date: .numeric, time: .shortened))")
-					.font(.system(size: 13, weight: .medium))
-					.opacity(0.6)
-			}
-			.lineLimit(1)
-			.minimumScaleFactor(0.7)
-			.padding(.horizontal, 64)
-		}
-		.foregroundStyle(ink)
-		.padding(.vertical, 8)
-	}
-	
-	private func circleButton(_ systemName: String, action: @escaping () -> Void) -> some View {
-		Button(action: action) {
-			Image(systemName: systemName)
-				.font(.system(size: 18, weight: .semibold))
+		.toolbar {
+			ToolbarItem(placement: .topBarLeading) {
+				Button {
+					dismiss()
+				} label: {
+					Image(systemName: "chevron.backward")
+				}
 				.foregroundStyle(ink)
-				.frame(width: 37, height: 37)
+				.accessibilityLabel("Back")
+			}
+			ToolbarItem(placement: .principal) {
+				VStack(spacing: 1) {
+					Text(patient.displayName)
+						.font(.system(size: 18, weight: .bold))
+					Text("Added \(patient.createdAt.formatted(date: .numeric, time: .shortened))")
+						.font(.system(size: 13, weight: .medium))
+						.opacity(0.6)
+				}
+				.lineLimit(1)
+				.minimumScaleFactor(0.7)
+				.foregroundStyle(ink)
+			}
+			ToolbarItem(placement: .topBarTrailing) {
+				Button {
+					// TODO: overflow menu - edit details, delete
+				} label: {
+					Image(systemName: "ellipsis")
+				}
+				.foregroundStyle(ink)
+				.accessibilityLabel("Options")
+			}
 		}
-		.buttonStyle(.glass)
-		.controlSize(.small)
-		.buttonBorderShape(.circle)
+		.toolbarBackground(.hidden, for: .navigationBar)
+		.toolbarColorScheme(.dark, for: .navigationBar)
+		.navigationBarTitleDisplayMode(.inline)
+		.navigationBarBackButtonHidden(true)
+		.environment(\.colorScheme, .dark)
 	}
 	
 	// MARK: - Hero
@@ -77,6 +76,7 @@ struct PatientDetailView: View {
 		HStack(alignment: .center, spacing: 10) {
 			heroGlyph
 			demographics
+				.frame(maxWidth: .infinity, alignment: .leading)
 		}
 		.padding(.vertical, 8)
 	}
@@ -85,9 +85,8 @@ struct PatientDetailView: View {
 		Image(systemName: patient.glyph.symbolName)
 				.resizable()
 				.scaledToFit()
-				.frame(width: 135, height: 135)
-				.foregroundStyle(.white.opacity(0.5))
-				.shadow(color: .black.opacity(0.35), radius: 8, y: 5)
+				.frame(width: 140, height: 140)
+				.reactiveContrast(for: patient.gradient)
 		}
 	
 	private var demographics: some View {
@@ -105,7 +104,7 @@ struct PatientDetailView: View {
 			}
 		}
 		.font(.system(size: 16))
-		.foregroundStyle(ink)
+		.reactiveContrast(for: patient.gradient)
 		.lineLimit(1)
 		.minimumScaleFactor(0.7)
 	}
@@ -133,14 +132,15 @@ struct PatientDetailView: View {
 	}
 	
 	private var notRecorded: some View {
-		Text("Not recorded").foregroundStyle(ink.opacity(0.4))
+		Image(systemName: "questionmark.message")
+			.font(.system(size: 17, weight: .semibold))
 	}
 	
 	private func hivSymbol(_ status: HIVStatus.Status) -> String {
 		switch status {
-		case .positive: "plus.circle"
-		case .negative: "minus.circle"
-		case .unknown: "questionmark.circle"
+		case .positive: "plus.circle.fill"
+		case .negative: "minus.circle.fill"
+		case .unknown: "questionmark.circle.fill"
 		}
 	}
 	
@@ -175,7 +175,7 @@ struct PatientDetailView: View {
 					.minimumScaleFactor(0.8)
 					.frame(maxWidth: .infinity)
 			}
-			.foregroundStyle(ink)
+			.reactiveContrast(for: patient.gradient)
 			.padding(.leading, 12)
 			.padding(.trailing, 8)
 			.frame(maxWidth: .infinity)
@@ -199,12 +199,11 @@ struct PatientDetailView: View {
 					Text("System").font(.system(size: 14, weight: .semibold))
 					Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
 				}
-				.foregroundStyle(ink.opacity(0.85))
 				.padding(.horizontal, 14)
 				.padding(.vertical, 10)
 				.glassEffect()
 			}
-			.foregroundStyle(ink)
+			.reactiveContrast(for: patient.gradient)
 			.padding(.leading, 12)
 			.padding(.trailing, 8)
 			.frame(height: 55)
@@ -221,7 +220,6 @@ struct PatientDetailView: View {
 				.font(.system(size: 16))
 				.frame(maxWidth: .infinity, alignment: .leading)
 				.padding(.top, 10)
-				.reactiveContrast(for: patient.gradient)
 		} label: {
 			Text("Logs")
 				.font(.system(size: 18, weight: .bold))
@@ -237,12 +235,12 @@ struct PatientDetailView: View {
 			patient: Patient(
 				alias: .character("A", script: .latin),
 				glyph: .seal,
-				gradient: .barbie,
+				gradient: .sunburn,
 				demographics: PatientDemographics(
 					age: PatientAge(value: 27, unit: .years),
 					biologicalSex: .male,
 					gender: .cisgenderMale,
-					pronouns: .heHim,
+					pronouns: nil,
 					hiv: HIVStatus(status: .negative)
 				)
 			)
