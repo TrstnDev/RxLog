@@ -500,48 +500,6 @@ private struct NotchedPanel: Shape {
 	}
 }
 
-// MARK: - Disclosure Section
-
-/// Collapsible section: tappable header with chevron revealing its content
-private struct DisclosureSection<Content: View>: View {
-	let title: String
-	var summary: String? = nil          // optional collapsed-state value; defaulted so existing calls are unaffected
-	@Binding var isExpanded: Bool
-	@ViewBuilder var content: () -> Content
-	
-	var body: some View {
-		VStack(spacing: 0) {
-			Button {
-				withAnimation(.snappy) { isExpanded.toggle() }
-			} label: {
-				HStack(spacing: 8) {
-					Text(title)
-					Spacer(minLength: 8)
-						// Surface the current value inline when collapsed, the way Settings rows do.
-					if let summary, !isExpanded {
-						Text(summary)
-							.foregroundStyle(.tertiary)
-							.lineLimit(1)
-					}
-					Image(systemName: "chevron.right")
-						.font(.footnote.weight(.semibold))
-						.rotationEffect(.degrees(isExpanded ? 90 : 0))
-				}
-				.foregroundStyle(.secondary)
-				.padding(.horizontal, 20)
-				.padding(.vertical, 18)
-				.contentShape(Rectangle())
-			}
-			.buttonStyle(.plain)
-			if isExpanded {
-				content()
-					.padding(.horizontal, 20)
-					.padding(.bottom, 18)
-			}
-		}
-	}
-}
-
 #Preview {
 	PatientCreationView()
 		.modelContainer(for: Patient.self, inMemory: true)

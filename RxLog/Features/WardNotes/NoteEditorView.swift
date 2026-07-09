@@ -145,7 +145,7 @@ struct NoteEditorView: View {
 			note: Note(
 				title: "Bed 12 - Mr. Dlamini",
 				content: AttributedString(
-					"Day 1 post addendectomy. Obs stable, afebrile. Wound clean and dry."
+					"Day 1 post appendectomy. Obs stable, afebrile. Wound clean and dry."
 				)
 			)
 		)

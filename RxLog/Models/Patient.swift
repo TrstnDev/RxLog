@@ -78,9 +78,6 @@ nonisolated enum PatientAlias: Codable, Hashable {
 	/// A ward and bed number, e.g., "Ward 5 · Bed 10"
 	case wardBed(ward: Int, bed: Int)
 	
-	/// A pre-populated pseudonym, e.g., "John Doe"
-	case pseudonym(first: String, last: String)
-	
 	nonisolated enum Script: String, Codable, Hashable, CaseIterable {
 		case latin, greek
 	}
@@ -90,7 +87,6 @@ nonisolated enum PatientAlias: Codable, Hashable {
 		switch self {
 		case .character(let value, _): "Patient \(value)"
 		case .wardBed(let ward, let bed): "Ward \(ward) · Bed \(bed)"
-		case .pseudonym(let first, let last): "\(first) \(last)"
 		}
 	}
 	
@@ -139,8 +135,8 @@ nonisolated enum AvatarGlyph: String, CaseIterable, Identifiable, Codable {
 extension Patient {
 	static var samples: [Patient] {
 		[
-			Patient(alias: .pseudonym(first: "John", last: "Apple"), glyph: .seal, gradient: .berry),
-			Patient(alias: .pseudonym(first: "Jane", last: "Doe"), glyph: .circle, gradient: .dusk),
+			Patient(alias: .character("J", script: .latin), glyph: .seal, gradient: .berry),
+			Patient(alias: .character("β", script: .greek), glyph: .circle, gradient: .dusk),
 			Patient(alias: .wardBed(ward: 5, bed: 10), glyph: .hexagon, gradient: .abyss),
 			Patient(alias: .character("Y", script: .latin), glyph: .buttonAngledTopRight, gradient: .lime)
 		]

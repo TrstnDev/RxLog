@@ -61,26 +61,6 @@ nonisolated enum AppGradient: String, CaseIterable, Identifiable, Codable {
 	}
 }
 
-// MARK: - Inline Styling
-
-/// Lets any `ShapeStyle` slot accept `.app(_:)`
-extension ShapeStyle where Self == LinearGradient {
-	static func app(_ gradient: AppGradient, start: UnitPoint = .top, end: UnitPoint = .bottom) -> LinearGradient {
-		gradient.linear(startPoint: start, endPoint: end)
-	}
-}
-
-// MARK: - Typography
-
-/// Shared note text style: monospaced with tightened tracking
-extension View {
-	func noteTypography() -> some View {
-		self
-			.fontDesign(.monospaced)
-			.tracking(-0.3)
-	}
-}
-
 // MARK: - Reactive Theme Contrast
 
 extension View {
@@ -114,7 +94,7 @@ fileprivate struct ReactiveContrastModifier: ViewModifier {
 					let transitionStart: CGFloat = 0.6
 					let transitionEnd: CGFloat = 0.7
 					
-					// Remap linear fraction so it only shifts within that window
+					// Remap linear fraction so it only shifts within the window
 					let steepFraction = max(0, min(1, (linearFraction - transitionStart) / (transitionEnd - transitionStart)))
 					
 					// Apply mathematical smoothstep to prevent abrupt colour snapping

@@ -26,7 +26,6 @@ struct OnboardingPage: Identifiable {
 	let title: String
 	let description: String
 	var style: SymbolStyle
-	let drawsOn: Bool
 }
 
 // MARK: - Onboarding Flow
@@ -45,36 +44,31 @@ struct OnboardingView: View {
 			symbol: "heart.text.square.fill",
 			title: "Histories at hand",
 			description: "Keep patient histories and running notes organised and instantly searchable when it matters.",
-			style: .onboardingGlyph,
-			drawsOn: true
+			style: .onboardingGlyph
 		),
 		OnboardingPage(
 			symbol: "pencil.and.scribble",
 			title: "Log in seconds",
 			description: "Capture notes, observations, and handovers fast - built for the pace of a busy public ward.",
-			style: .onboardingGlyph,
-			drawsOn: true
+			style: .onboardingGlyph
 		),
 		OnboardingPage(
 			symbol: "shareplay",
 			title: "Recognise at a glance",
 			description: "Every patient carries a colour and a symbol - so you know them on sight, and never by a real name.",
-			style: .onboardingGlyph,
-			drawsOn: true
+			style: .onboardingGlyph
 		),
 		OnboardingPage(
 			symbol: "radicand.squareroot",
 			title: "Calculate with confidence",
 			description: "Drug doses, clinical scores, and common formulas - worked out at the bedside, without a scrap of paper.",
-			style: .onboardingGlyph,
-			drawsOn: true
+			style: .onboardingGlyph
 		),
 		OnboardingPage(
 			symbol: "lock.heart",
 			title: "Private by Design",
 			description: "Your entries stay on your device. Clinical detail deserves clinical-grade privacy.",
-			style: .onboardingGlyph,
-			drawsOn: true
+			style: .onboardingGlyph
 		)
 	]
 
@@ -203,7 +197,6 @@ private struct PaneView: View {
 			Spacer(minLength: 0)
 		}
 		.onChange(of: isCurrent) { _, current in
-			guard page.drawsOn else { return }
 			if current {
 				withAnimation(.easeOut(duration: 1.0)) { showGlyph = true }
 			} else {
@@ -212,17 +205,12 @@ private struct PaneView: View {
 		}
 	}
 	
-	@ViewBuilder
 	private var glyph: some View {
-		if page.drawsOn {
-			ZStack {
-				if showGlyph {
-					StyledSymbol(page.symbol, style: page.style)
-						.symbolReveal(.drawOn(scope: .individually), speed: 0.5)
-				}
+		ZStack {
+			if showGlyph {
+				StyledSymbol(page.symbol, style: page.style)
+					.symbolReveal(.drawOn(scope: .individually), speed: 0.5)
 			}
-		} else {
-			StyledSymbol(page.symbol, style: page.style.active(isCurrent))
 		}
 	}
 	

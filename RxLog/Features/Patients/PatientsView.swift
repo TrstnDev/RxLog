@@ -53,6 +53,7 @@ private struct PatientsHome: View {
 	@State private var isSelecting = false
 	@State private var selection = Set<Patient.ID>()
 	@State private var sortOption: SortOption = .recentlyAdded
+	@State private var showingCreation = false
 	
 	private let columns = [
 		GridItem(.flexible(), spacing: 16),
@@ -89,6 +90,9 @@ private struct PatientsHome: View {
 					}
 				}
 				.animation(.snappy, value: isSelecting)
+		}
+		.fullScreenCover(isPresented: $showingCreation) {
+			PatientCreationView()
 		}
 		.onAppear(perform: sweepExpired)
 	}
@@ -182,7 +186,7 @@ private struct PatientsHome: View {
 	
 	/// Floating action button for adding a patient
 	private var addButton: some View {
-		Button(action: addPatient) {
+		Button { showingCreation = true } label: {
 			Image(systemName: "person.fill.badge.plus")
 				.font(.title2)
 				.fontWeight(.bold)
@@ -218,24 +222,6 @@ private struct PatientsHome: View {
 			selection.removeAll()
 			isSelecting = false
 		}
-	}
-	
-	/// TEMPORARY: inserts random profile so grid is testable
-	private func addPatient() {
-		let aliases: [PatientAlias] = [
-			.character(["X", "Y", "Z", "A", "B"].randomElement()!, script: .latin),
-			.wardBed(ward: .random(in: 1...20), bed: .random(in: 1...40)),
-			.pseudonym(
-				first: ["John", "Jane", "Sam", "Richard"].randomElement()!,
-				last: ["Doe", "Apple", "Smith", "White"].randomElement()!
-			)
-		]
-		let patient = Patient(
-			alias: aliases.randomElement()!,
-			glyph: AvatarGlyph.allCases.randomElement()!,
-			gradient: AppGradient.patientPalette.randomElement()!
-		)
-		modelContext.insert(patient)
 	}
 }
 

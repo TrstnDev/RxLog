@@ -52,7 +52,7 @@ struct PatientGateView: View {
 		GatePane(
 			icon: nil,
 			heading: nil,
-			intro: "Welcome to the Patient Loggin module. This feature is designed to assist you in structuring clinical histories, examinations, and complaints efficiently. To ensure absolute compliance with the Protection of Personal Information Act (POPIA) and HPCSA ethical guidelines regarding patient confidentiality, strict data guardrails have been hardcoded into this application.",
+			intro: "Welcome to the Patient Logging module. This feature is designed to assist you in structuring clinical histories, examinations, and complaints efficiently. To ensure absolute compliance with the Protection of Personal Information Act (POPIA) and HPCSA ethical guidelines regarding patient confidentiality, strict data guardrails have been hardcoded into this application.",
 			footnote: "Please review our data architecture and compliance protocols before continuing",
 			bullets: []
 		),

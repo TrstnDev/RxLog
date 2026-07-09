@@ -158,39 +158,3 @@ struct AliasEditor: View {
 		script == .greek ? "Greek" : "Latin"
 	}
 }
-
-// MARK: - Mode Selector
-
-/// Custom segmented control
-private struct ModeSelector: View {
-	@Binding var selection: AliasEditor.Mode
-	@Namespace private var namespace
-	
-	var body: some View {
-		HStack(spacing: 4) {
-			ForEach(AliasEditor.Mode.allCases) { mode in
-				let isSelected = mode == selection
-				Text(mode.rawValue)
-					.font(.footnote.weight(.semibold))
-					.lineLimit(1)
-					.minimumScaleFactor(0.75)
-					.foregroundStyle(isSelected ? .white : .primary)
-					.frame(maxWidth: .infinity)
-					.padding(.vertical, 9)
-					.background {
-						if isSelected {
-							Capsule(style: .continuous)
-								.fill(.tint)
-								.matchedGeometryEffect(id: "selectedSegment", in: namespace)
-						}
-					}
-					.contentShape(Rectangle())
-					.onTapGesture {
-						withAnimation(.snappy(duration: 0.3)) { selection = mode }
-					}
-			}
-		}
-		.padding(4)
-		.background(Color(.tertiarySystemFill), in: Capsule(style: .continuous))
-	}
-}
