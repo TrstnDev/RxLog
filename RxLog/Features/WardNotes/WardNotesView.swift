@@ -16,7 +16,6 @@ struct WardNotesView: View {
 	// Presentation
 	@AppStorage("wardNotesDisplayStyle") private var displayStyle: NoteDisplayStyle = .waterfall
 	@AppStorage("wardNotesSortOption") private var sortOption: NoteSortOption = .dateModified
-	@State private var searchText = ""
 	@State private var filter = NoteFilter()
 	@State private var showingFilter = false
     
@@ -32,7 +31,7 @@ struct WardNotesView: View {
 		// Build selections once per render
 		let sections = NoteListPipeline.sections(
 			from: allNotes,
-			searchText: searchText,
+			searchText: "",
 			filter: filter,
 			sortOption: sortOption
 		)
@@ -42,8 +41,6 @@ struct WardNotesView: View {
 			content(sections: sections, visibleNotes: visibleNotes)
 				.navigationTitle(navTitle)
 				.navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
-				.searchable(text: $searchText, prompt: "Search notes")
-				.searchToolbarBehavior(.minimize)
 				.toolbar { toolbarContent(visibleNotes: visibleNotes) }
 				.toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
 				.overlay(alignment: .bottomTrailing) {
@@ -162,8 +159,6 @@ struct WardNotesView: View {
 				}
 				.accessibilityLabel("Options")
 			}
-			
-			DefaultToolbarItem(kind: .search, placement: .topBarLeading)
 		}
 	}
 			
@@ -389,18 +384,12 @@ struct WardNotesView: View {
 	// MARK: - Subviews
     
 	private var noResults: some View {
-		Group {
-			if !searchText.isEmpty {
-				ContentUnavailableView.search(text: searchText)
-			} else {
-				ContentUnavailableView {
-					Label("No Matching Notes", systemImage: "line.3.horizontal.decrease.circle")
-				} description: {
-					Text("No notes match the current filters.")
-				} actions: {
-					Button("Clear Filters") { filter = NoteFilter() }
-				}
-			}
+		ContentUnavailableView {
+			Label("No Matching Notes", systemImage: "line.3.horizontal.decrease.circle")
+		} description: {
+			Text("No notes match the current filters.")
+		} actions: {
+			Button("Clear Filters") { filter = NoteFilter() }
 		}
 		.frame(maxWidth: .infinity)
 		.padding(.top, 40)

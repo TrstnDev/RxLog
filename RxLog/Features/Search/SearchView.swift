@@ -11,14 +11,14 @@ import SwiftUI
 /// Universal search tab: renders sectioned results for the query state
 /// owned by ``MainTabView``'s search field
 struct SearchView: View {
-	let searchText: String
-	let tokens: [SearchToken]
-	
 	@Query(sort: \Patient.createdAt, order: .reverse) private var patients: [Patient]
 	@Query private var notes: [Note]
 	
 	// Patient results respect same regulatory gate as Patients tab
 	@AppStorage(PatientConsent.acceptedVersionKey) private var acceptedVersion = 0
+	
+	// Search field state
+	@State private var searchText = ""
 	
 	// Result routing
 	@State private var viewingPatient: Patient?
@@ -30,7 +30,7 @@ struct SearchView: View {
 	
 	/// Idle until the user types or picks a token
 	private var isIdle: Bool {
-		trimmedText.isEmpty && tokens.isEmpty
+		trimmedText.isEmpty
 	}
 	
 	/// Patients are searchable only after the declaration is accepted
@@ -44,12 +44,13 @@ struct SearchView: View {
 			patients: searchablePatients,
 			notes: notes,
 			text: trimmedText,
-			tokens: tokens
+			tokens: []
 		)
 		
 		NavigationStack {
 			content(sections: sections)
 				.navigationTitle("Search")
+				.searchable(text: $searchText, prompt: "Search RxLog")
 				.navigationDestination(item: $viewingPatient) { patient in
 					PatientDetailView(patient: patient)
 				}
@@ -65,12 +66,12 @@ struct SearchView: View {
 	private func content(sections: [SearchResultSection]) -> some View {
 		if isIdle {
 			ContentUnavailableView(
-				"Search RxLog",
+				"No Recent Searches",
 				systemImage: "waveform.path.ecg.magnifyingglass",
 				description: Text("Find patients by alias, ward, or bed - and ward notes by title or content.")
 			)
 		} else if sections.isEmpty {
-			noResults
+			ContentUnavailableView.search(text: trimmedText)
 		} else {
 			resultsList(sections: sections)
 		}
@@ -91,7 +92,7 @@ struct SearchView: View {
 				}
 			}
 		}
-		.scrollDismissesKeyboard(.immediately)
+		.scrollDismissesKeyboard(.interactively)
 	}
 	
 	/// Dispatches each result kind to its row and destination
@@ -137,6 +138,6 @@ struct SearchView: View {
 }
 
 #Preview {
-	SearchView(searchText: "", tokens: [])
+	SearchView()
 		.modelContainer(SampleData.previewContainer)
 }
