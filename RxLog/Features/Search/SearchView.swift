@@ -24,6 +24,9 @@ struct SearchView: View {
 	@State private var viewingPatient: Patient?
 	@State private var editingNote: Note?
 	
+	// Recents
+	@State private var recents = RecentSearchesStore()
+	
 	private var trimmedText: String {
 		searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 	}
@@ -43,8 +46,7 @@ struct SearchView: View {
 		let sections = UniversalSearch.sections(
 			patients: searchablePatients,
 			notes: notes,
-			text: trimmedText,
-			tokens: []
+			text: trimmedText
 		)
 		
 		NavigationStack {
@@ -60,16 +62,63 @@ struct SearchView: View {
 		}
 	}
 	
+	// MARK: - Recents
+	
+	/// Sweep stale entries: expired patients and deleted notes
+	private func garbageCollectRecents() {
+		let validPatients = Set(patients.map { $0.persistentModelID.hashValue })
+		let validNotes = Set(notes.map { $0.persistentModelID.hashValue })
+		recents.gc(validPatientIDs: validPatients, validNoteIDs: validNotes)
+	}
+	
+	private func recentsList() -> some View {
+		VStack(alignment: .leading, spacing: 0) {
+			ForEach(recents.recentSearches) { entry in
+				RecentSearchRow(entry: entry)
+			}
+		}
+		.padding(.horizontal)
+	}
+	
 	// MARK: - Content
 	
 	@ViewBuilder
 	private func content(sections: [SearchResultSection]) -> some View {
 		if isIdle {
-			ContentUnavailableView(
-				"No Recent Searches",
-				systemImage: "waveform.path.ecg.magnifyingglass",
-				description: Text("Find patients by alias, ward, or bed - and ward notes by title or content.")
-			)
+			if recents.recentSearches.isEmpty {
+				ContentUnavailableView(
+					"Recent Searches",
+					systemImage: "clock.arrow.circlepath",
+					description: Text("Find patients by alias, ward, or bed — and ward notes by title or content.")
+				)
+			} else {
+				ScrollView {
+					VStack(alignment: .leading, spacing: 16) {
+						Text("Recent")
+							.font(.headline.weight(.semibold))
+							.foregroundStyle(.secondary)
+							.padding(.top, 8)
+							.frame(maxWidth: .infinity, alignment: .leading)
+							.padding(.horizontal)
+						
+						recentsList()
+							.background {
+								RoundedRectangle(cornerRadius: 12, style: .continuous)
+									.fill(Color(.secondarySystemGroupedBackground))
+							}
+							.padding(.horizontal)
+						
+						Button("Clear History", role: .destructive) {
+							recents.clearAll()
+						}
+						.font(.subheadline)
+						.foregroundStyle(.secondary)
+						.frame(maxWidth: .infinity, alignment: .center)
+						.padding(.horizontal)
+						.padding(.top, 4)
+					}
+				}
+			}
 		} else if sections.isEmpty {
 			ContentUnavailableView.search(text: trimmedText)
 		} else {
@@ -101,10 +150,16 @@ struct SearchView: View {
 		switch result {
 		case .patient(let patient):
 			PatientSearchRow(patient: patient)
-				.onTapGesture { viewingPatient = patient }
+				.onTapGesture {
+					recents.addPatient(patient)
+					viewingPatient = patient
+				}
 		case .note(let note, let snippet):
 			NoteSearchRow(note: note, snippet: snippet)
-				.onTapGesture { editingNote = note }
+				.onTapGesture {
+					recents.addNote(note)
+					editingNote = note
+				}
 		}
 	}
 	
@@ -121,19 +176,48 @@ struct SearchView: View {
 					.background(.ultraThinMaterial)
 			}
 	}
+}
+
+// MARK: - Recent Search Row
+
+/// A single recent-search entry: icon, display name, type badge, and relative date.
+private struct RecentSearchRow: View {
+	let entry: RecentSearchesStore.Entry
 	
-	private var noResults: some View {
-		Group {
-			if trimmedText.isEmpty {
-				ContentUnavailableView {
-					Label("No Matches", systemImage: "questionmark.folder")
-				} description: {
-					Text("Nothing matches the selected tokens.")
-				}
-			} else {
-				ContentUnavailableView.search(text: trimmedText)
-			}
+	var systemImage: String {
+		switch entry.type {
+		case .patient: "person.fill"
+		case .note: "text.pad.header"
 		}
+	}
+	
+	var typeLabel: String {
+		switch entry.type {
+		case .patient: "Patient"
+		case .note: "Note"
+		}
+	}
+	
+	var body: some View {
+		HStack(spacing: 12) {
+			Image(systemName: systemImage)
+				.font(.title3)
+				.foregroundStyle(.secondary)
+				.frame(width: 32, alignment: .leading)
+			
+			VStack(alignment: .leading, spacing: 2) {
+				Text(entry.displayName)
+					.font(.subheadline.weight(.medium))
+					.lineLimit(1)
+				Text("\(typeLabel) · \(entry.selectedAt, format: .relative(presentation: .numeric)))")
+					.font(.caption)
+					.foregroundStyle(.secondary)
+			}
+			
+			Spacer(minLength: 0)
+		}
+		.padding(.vertical, 6)
+		.contentShape(Rectangle())
 	}
 }
 

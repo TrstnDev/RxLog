@@ -9,19 +9,7 @@ import SwiftData
 import SwiftUI
 
 /// Root tab bar: Patients, Calculator, Ward Notes, and universal Search
-///
-/// Owns the search field state
 struct MainTabView: View {
-	@State private var searchText = ""
-	@State private var searchTokens: [SearchToken] = []
-	
-	/// Offers every token not already applied; system only reads this
-	private var suggestedTokens: Binding<[SearchToken]> {
-		Binding(
-			get: { SearchToken.allCases.filter { !searchTokens.contains($0) } },
-			set: { _ in }
-		)
-	}
 	
 	var body: some View {
 		TabView {
