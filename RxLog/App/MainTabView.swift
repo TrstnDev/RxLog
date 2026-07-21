@@ -21,9 +21,6 @@ struct MainTabView: View {
 			Tab("Ward Notes", systemImage: "note.text") {
 				WardNotesView()
 			}
-			Tab("Preferences", systemImage: "slider.vertical.3") {
-				PreferencesView()
-			}
 		}
 		.tabBarMinimizeBehavior(.onScrollDown)
 	}
