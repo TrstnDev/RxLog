@@ -215,18 +215,7 @@ private struct PatientsHome: View {
 	}
 }
 
-#Preview("Coordinator") {
-	PatientsView()
-}
-
 #Preview("Overview") {
-	let container = try! ModelContainer(
-		for: Patient.self,
-		configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-	)
-	for patient in Patient.samples {
-		container.mainContext.insert(patient)
-	}
-	return PatientsHome()
-		.modelContainer(container)
+	PatientsHome()
+		.modelContainer(SampleData.previewContainer)
 }

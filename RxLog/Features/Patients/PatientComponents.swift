@@ -101,7 +101,7 @@ extension PatientCard {
 			columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
 			spacing: 16
 		) {
-			ForEach(Patient.samples) { patient in
+			ForEach(SampleData.samplePatients) { patient in
 				PatientCard(patient: patient)
 			}
 		}
