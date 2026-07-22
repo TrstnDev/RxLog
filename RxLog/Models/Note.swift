@@ -1,41 +1,48 @@
-//
-//  Note.swift
-//  RxLog
-//
-//  Created by Tristan Kriel on 2026/06/24.
-//
+	//
+	//  Note.swift
+	//  RxLog
+	//
+	//  Created by Tristan Kriel on 2026/06/24.
+	//
 
 import SwiftData
 import SwiftUI
 
-/// A ward note: title, rich-text body, favourite flag, and timestamps. Persisted via SwiftData.
+	/// A ward note: title, rich-text body, favourite flag, and timestamps. Persisted via SwiftData.
 @Model
 final class Note {
+	
+		/// Stable external identity for features that persist references to this model
+		/// (e.g. search recents). Deliberately not marked `.unique`: a uniqueness
+		/// constraint would fail lightweight migration, because every pre-existing row
+		/// receives the same evaluated default.
+	var uuid: UUID = UUID()
+	
 	var title: String
-    
-	/// Rich-text as JSON-encoded `Data`; backing store for `content`
+	
+		/// Rich-text as JSON-encoded `Data`; backing store for `content`
 	private var contentData: Data
-    
-	/// Plain-text mirror of `content` for search and previews; kept in sync by the `content` setter
+	
+		/// Plain-text mirror of `content` for search and previews; kept in sync by the `content` setter
 	var plainText: String
-    
+	
 	var dateCreated: Date
 	var dateModified: Date
 	var lastViewed: Date
 	var isFavourite: Bool
-    
-	/// `AttributedString` façade over `contentData`; the setter also refreshes `plainText`
+	
+		/// `AttributedString` façade over `contentData`; the setter also refreshes `plainText`
 	var content: AttributedString {
 		get {
 			(try? JSONDecoder().decode(AttributedString.self, from: contentData))
-				?? AttributedString()
+			?? AttributedString()
 		}
 		set {
 			contentData = Note.encode(newValue)
 			plainText = String(newValue.characters)
 		}
 	}
-    
+	
 	init(
 		title: String = "",
 		content: AttributedString = AttributedString(),
@@ -52,8 +59,8 @@ final class Note {
 		self.lastViewed = lastViewed
 		self.isFavourite = isFavourite
 	}
-    
-	/// Encodes rich text to JSON for storage; shared by the `content` setter and `init`
+	
+		/// Encodes rich text to JSON for storage; shared by the `content` setter and `init`
 	private static func encode(_ value: AttributedString) -> Data {
 		(try? JSONEncoder().encode(value)) ?? Data()
 	}

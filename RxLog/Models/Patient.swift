@@ -1,20 +1,26 @@
-//
-//  Patient.swift
-//  RxLog
-//
-//  Created by Tristan Kriel on 2026/07/01.
-//
+	//
+	//  Patient.swift
+	//  RxLog
+	//
+	//  Created by Tristan Kriel on 2026/07/01.
+	//
 
 import SwiftData
 import SwiftUI
 
-// MARK: - Patient
+	// MARK: - Patient
 
-/// A de-identified patient profile: an alias, an avatar (glyph + gradient), and a retention window
+	/// A de-identified patient profile: an alias, an avatar (glyph + gradient), and a retention window
 @Model
 final class Patient {
 	
-	/// JSON-encoded `Data`; backing store for values
+		/// Stable external identity for features that persist references to this model
+		/// (e.g. search recents). Deliberately not marked `.unique`: a uniqueness
+		/// constraint would fail lightweight migration, because every pre-existing row
+		/// receives the same evaluated default.
+	var uuid: UUID = UUID()
+	
+		/// JSON-encoded `Data`; backing store for values
 	private var aliasData: Data
 	private var demographicsData: Data?
 	
@@ -24,18 +30,18 @@ final class Patient {
 	var createdAt: Date
 	var expiresAt: Date
 	
-	/// Typed façade over ``aliasData``
+		/// Typed façade over ``aliasData``
 	var alias: PatientAlias {
 		get { (try? JSONDecoder().decode(PatientAlias.self, from: aliasData)) ?? .placeholder }
 		set { aliasData = Patient.encode(newValue) }
 	}
 	
-	/// Typed façade over ``demographicsData``
+		/// Typed façade over ``demographicsData``
 	var demographics: PatientDemographics {
 		get {
 			guard let demographicsData,
 				  let value = try? JSONDecoder().decode(PatientDemographics.self, from: demographicsData)
-			else { return PatientDemographics() }
+					else { return PatientDemographics() }
 			return value
 		}
 		set { demographicsData = try? JSONEncoder().encode(newValue) }
@@ -57,10 +63,10 @@ final class Patient {
 		self.expiresAt = expiresAt ?? Calendar.current.date(byAdding: .day, value: 7, to: createdAt) ?? createdAt
 	}
 	
-	/// The label shown on cards and the profile header
+		/// The label shown on cards and the profile header
 	var displayName: String { alias.displayName }
 	
-	/// Whether the retention window has elapsed
+		/// Whether the retention window has elapsed
 	var isExpired: Bool { expiresAt < .now }
 	
 	private static func encode(_ value: PatientAlias) -> Data {
@@ -68,21 +74,21 @@ final class Patient {
 	}
 }
 
-// MARK: - Alias
+	// MARK: - Alias
 
-/// A patient's alias, captured by one of three prescribed de-identification methods
+	/// A patient's alias, captured by one of three prescribed de-identification methods
 nonisolated enum PatientAlias: Codable, Hashable {
-	/// Capitalised Latin or lowercase Greek character, e.g., "Patient X" or "Patient β"
+		/// Capitalised Latin or lowercase Greek character, e.g., "Patient X" or "Patient β"
 	case character(String, script: Script)
 	
-	/// A ward and bed number, e.g., "Ward 5 · Bed 10"
+		/// A ward and bed number, e.g., "Ward 5 · Bed 10"
 	case wardBed(ward: Int, bed: Int)
 	
 	nonisolated enum Script: String, Codable, Hashable, CaseIterable {
 		case latin, greek
 	}
 	
-	/// The rendered label for cards and headers
+		/// The rendered label for cards and headers
 	var displayName: String {
 		switch self {
 		case .character(let value, _): "Patient \(value)"
@@ -90,13 +96,13 @@ nonisolated enum PatientAlias: Codable, Hashable {
 		}
 	}
 	
-	/// Fallback used only if stored data fails to decode
+		/// Fallback used only if stored data fails to decode
 	static let placeholder = PatientAlias.character("?", script: .latin)
 }
 
-// MARK: - Avatar Glyph
+	// MARK: - Avatar Glyph
 
-/// The SF Symbol shapes offered for a patient avatar
+	/// The SF Symbol shapes offered for a patient avatar
 nonisolated enum AvatarGlyph: String, CaseIterable, Identifiable, Codable {
 	case circle                 	= "circle.fill"
 	case square                 	= "square.fill"
@@ -122,14 +128,14 @@ nonisolated enum AvatarGlyph: String, CaseIterable, Identifiable, Codable {
 	case buttonAngledTopRight   	= "button.angledtop.vertical.right.fill"
 	case buttonAngledBottomLeft 	= "button.angledbottom.horizontal.left.fill"
 	case buttonAngledBottomRight 	= "button.angledbottom.horizontal.right.fill"
-
+	
 	var id: String { rawValue }
 	
-	/// The SF Symbol name
+		/// The SF Symbol name
 	var symbolName: String { rawValue }
 }
 
-// MARK: - Sample Data
+	// MARK: - Sample Data
 
 #if DEBUG
 extension Patient {

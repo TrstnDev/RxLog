@@ -87,14 +87,6 @@ private struct PatientsHome: View {
 			content
 				.navigationTitle("Patients")
 				.toolbar { toolbarContent }
-				.overlay(alignment: .bottomTrailing) {
-					if !isSelecting {
-						addButton
-							.padding(15)
-							.transition(.scale.combined(with: .opacity))
-					}
-				}
-				.animation(.snappy, value: isSelecting)
 				.navigationDestination(item: $viewingPatient) { patient in
 					PatientDetailView(patient: patient)
 				}
@@ -105,14 +97,14 @@ private struct PatientsHome: View {
 		.onAppear(perform: sweepExpired)
 	}
 	
-	// MARK: Content
+	// MARK: - Content
 	
 	@ViewBuilder private var content: some View {
 		if patients.isEmpty {
 			ContentUnavailableView(
 				"No Patients Yet",
-				systemImage: "person.2.fill",
-				description: Text("Tap the button below to add a patient profile.")
+				systemImage: "person.3.fill",
+				description: Text("Tap the add button to create a patient profile.")
 			)
 		} else {
 			ScrollView {
@@ -152,7 +144,7 @@ private struct PatientsHome: View {
 			}
 	}
 	
-	// MARK: Toolbar
+	// MARK: - Toolbar
 	
 	@ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
 		ToolbarItem(placement: .topBarLeading) {
@@ -181,32 +173,21 @@ private struct PatientsHome: View {
 				} label: {
 					Image(systemName: "line.3.horizontal.decrease")
 				}
+			}
 				
-				Button {
-					// TODO: present the quick-add log flow once log model exists
-				} label: {
-					Image(systemName: "pencil.and.list.clipboard")
+			// Primary creation action
+			ToolbarItem(placement: .topBarPinnedTrailing) {
+				Button { showingCreation = true } label: {
+					Image(systemName: "plus")
 				}
+				.fontWeight(.semibold)
 				.buttonStyle(.glassProminent)
-				.accessibilityLabel("Quick add a history or examination")
+				.accessibilityLabel("Add new Patient")
 			}
 		}
 	}
 	
-	/// Floating action button for adding a patient
-	private var addButton: some View {
-		Button { showingCreation = true } label: {
-			Image(systemName: "person.fill.badge.plus")
-				.font(.title2)
-				.fontWeight(.bold)
-				.frame(width: 45, height: 45)
-		}
-		.buttonStyle(.glassProminent)
-		.buttonBorderShape(.circle)
-		.accessibilityLabel("Add new Patient")
-	}
-	
-	// MARK: Actions
+	// MARK: - Actions
 	
 	/// Permanently deletes profiles past their expiry; runs on tab open, per retention policy
 	private func sweepExpired() {

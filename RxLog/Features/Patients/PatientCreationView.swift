@@ -472,7 +472,7 @@ private struct NotchedPanel: Shape {
 	var tipRadius: CGFloat = 6
 	var baseRadius: CGFloat = 5
 	
-	func path(in rect: CGRect) -> Path {
+	nonisolated func path(in rect: CGRect) -> Path {
 		let bodyTop = rect.minY + pointerHeight
 		let cx = rect.midX
 		let r = min(cornerRadius, (rect.height - pointerHeight) / 2, rect.width / 2)

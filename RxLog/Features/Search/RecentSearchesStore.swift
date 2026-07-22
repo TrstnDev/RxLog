@@ -1,28 +1,34 @@
-//
-//  RecentSearchesStore.swift
-//  RxLog
-//
-//  Created by Tristan Kriel on 2026/07/21.
-//
+	//
+	//  RecentSearchesStore.swift
+	//  RxLog
+	//
+	//  Created by Tristan Kriel on 2026/07/21.
+	//
 
 import Foundation
-import SwiftData
 
-/// Lightweight store for universal-search recents
-///
-/// Persists up to 15 entries to UserDefaults as JSON
-/// Call ``gc(validPatientIDs:validNoteIDs:)`` before displaying to purge stale references
+	/// Lightweight store for universal-search recents.
+	///
+	/// Persists up to 15 entries to `UserDefaults` as JSON. Entries reference live
+	/// models by their model-owned `uuid` — a plain value that round-trips through
+	/// JSON with full fidelity, unlike `PersistentIdentifier`, whose decoded form is
+	/// documented as not equivalent to store-created identifiers. Anything that no
+	/// longer resolves (deleted notes, expired or removed patients) is dropped by
+	/// ``prune(keeping:)``.
 @Observable
 final class RecentSearchesStore {
 	
-	/// One stored search result
-	struct Entry: Codable, Identifiable {
-		let id: Int			// PersistentIdentifier.value
-		let type: EntryType		// .patient or .note
-		let displayName: String
-		let selectedAt: Date
+		/// A stored pointer to a previously selected search result.
+		///
+		/// Only the identifier, kind, and selection date are stored — display content
+		/// is always read from the live model, so entries never show stale titles and
+		/// dead entries simply fail to resolve.
+	struct Entry: Codable, Identifiable, Equatable {
+		let id: UUID
+		let kind: Kind
+		var selectedAt: Date
 		
-		enum EntryType: String, Codable {
+		enum Kind: String, Codable {
 			case patient, note
 		}
 	}
@@ -30,76 +36,69 @@ final class RecentSearchesStore {
 	private static let storageKey = "rxlog.recentSearches"
 	static let maxEntries = 15
 	
-	var recentSearches: [Entry] = []
+	private(set) var entries: [Entry] = []
 	
-	/// Load from disk; fall back to empty array on decode failure
+		/// Loads persisted entries; falls back to an empty list if decoding fails
+		/// (e.g. after a format change), which self-heals as new selections arrive.
 	init() {
 		if let data = UserDefaults.standard.data(forKey: Self.storageKey),
 		   let decoded = try? JSONDecoder().decode([Entry].self, from: data) {
-			recentSearches = decoded
+			entries = decoded
 		}
 	}
+	
+		// MARK: - Recording
+	
+	func record(_ patient: Patient) {
+		record(id: patient.uuid, kind: .patient)
+	}
+	
+	func record(_ note: Note) {
+		record(id: note.uuid, kind: .note)
+	}
+	
+		/// Inserts at the front, deduplicating by identifier (move-to-front),
+		/// then trims to ``maxEntries``.
+	private func record(id: UUID, kind: Entry.Kind) {
+		entries.removeAll { $0.id == id }
+		entries.insert(Entry(id: id, kind: kind, selectedAt: .now), at: 0)
+		if entries.count > Self.maxEntries {
+			entries.removeLast(entries.count - Self.maxEntries)
+		}
+		save()
+	}
+	
+		// MARK: - Garbage collection
+	
+		/// Drops entries whose identifiers are absent from `validIDs`.
+		///
+		/// Callers pass the identifiers of every model that should remain reachable
+		/// (non-expired patients + existing notes). Comparison happens entirely
+		/// in memory — nothing here touches SwiftData.
+	func prune(keeping validIDs: Set<UUID>) {
+		let pruned = entries.filter { validIDs.contains($0.id) }
+		guard pruned.count != entries.count else { return }
+		entries = pruned
+		save()
+	}
+	
+		// MARK: - Removal
+	
+	func remove(_ entry: Entry) {
+		entries.removeAll { $0.id == entry.id }
+		save()
+	}
+	
+	func clearAll() {
+		entries.removeAll()
+		save()
+	}
+	
+		// MARK: - Persistence
 	
 	private func save() {
-		if let data = try? JSONEncoder().encode(recentSearches) {
+		if let data = try? JSONEncoder().encode(entries) {
 			UserDefaults.standard.set(data, forKey: Self.storageKey)
 		}
-	}
-	
-	/// Add a patient to the front of the recents list
-	/// Duplicates (same ID) are moved to the front rather than duplicated
-	func addPatient(_ patient: Patient) {
-		let entry = Entry(
-			id: patient.persistentModelID.hashValue,
-			type: .patient,
-			displayName: patient.displayName,
-			selectedAt: .now
-		)
-		insert(entry: entry)
-	}
-	
-	/// Add a note to the front of the recents list
-	func addNote(_ note: Note) {
-		let entry = Entry(
-			id: note.persistentModelID.hashValue,
-			type: .note,
-			displayName: note.title,
-			selectedAt: .now
-		)
-		insert(entry: entry)
-	}
-	
-	private func insert(entry: Entry) {
-		// Remove existing entry with the same ID (move-to-front)
-		recentSearches.removeAll { $0.id == entry.id }
-		recentSearches.insert(entry, at: 0)
-		recentSearches = Array(recentSearches.prefix(Self.maxEntries))
-		save()
-	}
-	
-	/// Remove expired/deleted entries that no longer exist in the store
-	///
-	/// - `validPatientIDs`: IDs of patients currently in SwiftData
-	/// - `validNoteIDs`: IDs of notes currently in SwiftData
-	func gc(
-		validPatientIDs: Set<Int>,
-		validNoteIDs: Set<Int>
-	) {
-		let before = recentSearches.count
-		recentSearches = recentSearches.filter { entry in
-			switch entry.type {
-			case .patient: validPatientIDs.contains(entry.id)
-			case .note: validNoteIDs.contains(entry.id)
-			}
-		}
-		if recentSearches.count != before {
-			save()
-		}
-	}
-	
-	/// Wipe the entire recents list
-	func clearAll() {
-		recentSearches.removeAll()
-		save()
 	}
 }

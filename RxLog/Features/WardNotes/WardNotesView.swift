@@ -8,27 +8,27 @@
 import SwiftData
 import SwiftUI
 
-/// Ward Notes home screen: searchable, filterable notes with multi-select and three layouts
+	/// Ward Notes home screen: searchable, filterable notes with multi-select and three layouts
 struct WardNotesView: View {
 	@Environment(\.modelContext) private var modelContext
 	@Query private var allNotes: [Note]
-    
-	// Presentation
+	
+		// Presentation
 	@AppStorage("wardNotesDisplayStyle") private var displayStyle: NoteDisplayStyle = .waterfall
 	@AppStorage("wardNotesSortOption") private var sortOption: NoteSortOption = .dateModified
 	@State private var filter = NoteFilter()
 	@State private var showingFilter = false
-    
-	// Selection
+	
+		// Selection
 	@State private var isSelecting = false
 	@State private var selectedNoteIDs = Set<Note.ID>()
 	@State private var showingDeleteConfirmation = false
-    
-	/// Editor routing
+	
+		/// Editor routing
 	@State private var editingNote: Note?
-    
+	
 	var body: some View {
-		// Build selections once per render
+			// Build selections once per render
 		let sections = NoteListPipeline.sections(
 			from: allNotes,
 			searchText: "",
@@ -36,20 +36,13 @@ struct WardNotesView: View {
 			sortOption: sortOption
 		)
 		let visibleNotes = sections.flatMap(\.notes)
-        
+		
 		NavigationStack {
 			content(sections: sections, visibleNotes: visibleNotes)
 				.navigationTitle(navTitle)
 				.navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
 				.toolbar { toolbarContent(visibleNotes: visibleNotes) }
 				.toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
-				.overlay(alignment: .bottomTrailing) {
-					if !isSelecting {
-						composeButton
-							.padding(15)
-							.transition(.scale.combined(with: .opacity))
-					}
-				}
 				.sheet(isPresented: $showingFilter) {
 					NoteFilterSheet(filter: $filter)
 				}
@@ -67,9 +60,9 @@ struct WardNotesView: View {
 				}
 		}
 	}
-    
-	// MARK: - Toolbar
-    
+	
+		// MARK: - Toolbar
+	
 	@ToolbarContentBuilder
 	private func toolbarContent(visibleNotes: [Note]) -> some ToolbarContent {
 		if isSelecting {
@@ -159,11 +152,22 @@ struct WardNotesView: View {
 				}
 				.accessibilityLabel("Options")
 			}
+			
+				// Primary creation action: pinned so it never collapses into overflow
+			ToolbarItem(placement: .topBarPinnedTrailing) {
+				Button {
+					compose()
+				} label: {
+					Image(systemName: "pencil.and.scribble")
+				}
+				.buttonStyle(.glassProminent)
+				.accessibilityLabel("New Note")
+			}
 		}
 	}
-			
-	// MARK: - Content
-    
+	
+		// MARK: - Content
+	
 	@ViewBuilder
 	private func content(sections: [NoteSection], visibleNotes: [Note]) -> some View {
 		if allNotes.isEmpty {
@@ -177,7 +181,7 @@ struct WardNotesView: View {
 				.scrollDismissesKeyboard(.immediately)
 		}
 	}
-    
+	
 	@ViewBuilder
 	private func notesContent(sections: [NoteSection], visibleNotes: [Note]) -> some View {
 		switch displayStyle {
@@ -195,7 +199,7 @@ struct WardNotesView: View {
 					.padding(.horizontal)
 				}
 			}
-            
+			
 		case .grid:
 			ScrollView {
 				if visibleNotes.isEmpty {
@@ -209,92 +213,65 @@ struct WardNotesView: View {
 					)
 				}
 			}
-            
+			
 		case .list:
 			ScrollView {
 				if visibleNotes.isEmpty {
 					noResults
 				} else {
-					// Pinned headers + lazy rows
-					if #available(iOS 27.0, *) {
-						LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
-							ForEach(sections) { section in
-								Section {
-									ForEach(section.notes) { note in
-										listRow(note)
-											.padding(.horizontal)
-											.swipeActions(edge: .leading) {
-												if !isSelecting {
-													Button {
-														note.isFavourite.toggle()
-													} label: {
-														Label(note.isFavourite ? "Unfavourite" : "Favourite",
-															  systemImage: note.isFavourite ? "star.slash" : "star")
-													}
-													.tint(.yellow)
+						// Pinned headers + lazy rows
+					LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
+						ForEach(sections) { section in
+							Section {
+								ForEach(section.notes) { note in
+									listRow(note)
+										.padding(.horizontal)
+										.swipeActions(edge: .leading) {
+											if !isSelecting {
+												Button {
+													note.isFavourite.toggle()
+												} label: {
+													Label(note.isFavourite ? "Unfavourite" : "Favourite",
+														  systemImage: note.isFavourite ? "star.slash" : "star")
+												}
+												.tint(.yellow)
+											}
+										}
+										.swipeActions(edge: .trailing) {
+											if !isSelecting {
+												Button(role: .destructive) {
+													modelContext.delete(note)
+												} label: {
+													Label("Delete", systemImage: "trash")
 												}
 											}
-											.swipeActions(edge: .trailing) {
-												if !isSelecting {
-													Button(role: .destructive) {
-														modelContext.delete(note)
-													} label: {
-														Label("Delete", systemImage: "trash")
-													}
-												}
-											}
-									}
-								} header: {
-									if let title = section.title {
-										Text(title)
-											.font(.headline.weight(.semibold))
-											.foregroundStyle(.secondary)
-											.frame(maxWidth: .infinity, alignment: .leading)
-											.padding(.horizontal)
-											.padding(.vertical, 9)
-											// Frosted backing keeps pinned headers legible as rows scroll beneath
-											.background {
-												Color(.systemBackground).opacity(0.5)
-													.background(.ultraThinMaterial)
-											}
-									}
+										}
 								}
-							}
-						}
-						.swipeActionsContainer()
-					} else {
-						LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
-							ForEach(sections) { section in
-								Section {
-									ForEach(section.notes) { note in
-										listRow(note)
-											.padding(.horizontal)
-									}
-								} header: {
-									if let title = section.title {
-										Text(title)
-											.font(.headline.weight(.semibold))
-											.foregroundStyle(.secondary)
-											.frame(maxWidth: .infinity, alignment: .leading)
-											.padding(.horizontal)
-											.padding(.vertical, 9)
-											// Frosted backing keeps pinned headers legible as rows scroll beneath
-											.background {
-												Color(.systemBackground).opacity(0.5)
-													.background(.ultraThinMaterial)
-											}
-									}
+							} header: {
+								if let title = section.title {
+									Text(title)
+										.font(.headline.weight(.semibold))
+										.foregroundStyle(.secondary)
+										.frame(maxWidth: .infinity, alignment: .leading)
+										.padding(.horizontal)
+										.padding(.vertical, 9)
+										// Frosted backing keeps pinned headers legible as rows scroll beneath
+										.background {
+											Color(.systemBackground).opacity(0.5)
+												.background(.ultraThinMaterial)
+										}
 								}
 							}
 						}
 					}
+					.swipeActionsContainer()
 				}
 			}
 			.scrollDismissesKeyboard(.immediately)
 		}
 	}
-    
-	/// List row with a leading selection circle while selecting
+	
+		/// List row with a leading selection circle while selecting
 	private func listRow(_ note: Note) -> some View {
 		HStack(spacing: 12) {
 			if isSelecting {
@@ -306,18 +283,18 @@ struct WardNotesView: View {
 		.contentShape(Rectangle())
 		.onTapGesture { handleTap(note) }
 	}
-    
-	// MARK: - Selection Helpers
-    
+	
+		// MARK: - Selection Helpers
+	
 	private var navTitle: String {
 		guard isSelecting else { return "Ward Notes" }
 		return selectedNoteIDs.isEmpty ? "Select Notes" : "\(selectedNoteIDs.count) Selected"
 	}
-    
+	
 	private func allSelected(in visibleNotes: [Note]) -> Bool {
 		!visibleNotes.isEmpty && selectedNoteIDs.count == visibleNotes.count
 	}
-    
+	
 	private func toggleSelection(_ note: Note) {
 		if selectedNoteIDs.contains(note.id) {
 			selectedNoteIDs.remove(note.id)
@@ -325,7 +302,7 @@ struct WardNotesView: View {
 			selectedNoteIDs.insert(note.id)
 		}
 	}
-    
+	
 	private func handleTap(_ note: Note) {
 		if isSelecting {
 			toggleSelection(note)
@@ -333,31 +310,31 @@ struct WardNotesView: View {
 			editingNote = note
 		}
 	}
-    
+	
 	private func toggleSelectAll(in visibleNotes: [Note]) {
 		withAnimation(.easeInOut(duration: 0.15)) {
 			selectedNoteIDs = allSelected(in: visibleNotes) ? [] : Set(visibleNotes.map(\.id))
 		}
 	}
-    
+	
 	private func setSelecting(_ on: Bool) {
 		withAnimation(.easeInOut(duration: 0.2)) {
 			isSelecting = on
 			if !on { selectedNoteIDs.removeAll() }
 		}
 	}
-    
-	// MARK: - Bulk Actions
-    
+	
+		// MARK: - Bulk Actions
+	
 	private var selectedNotes: [Note] {
 		allNotes.filter { selectedNoteIDs.contains($0.id) }
 	}
-    
+	
 	private var allSelectedAreFavourite: Bool {
 		!selectedNotes.isEmpty && selectedNotes.allSatisfy(\.isFavourite)
 	}
-    
-	/// Plain-text rendering of the selected notes for the share sheet
+	
+		/// Plain-text rendering of the selected notes for the share sheet
 	private var shareText: String {
 		selectedNotes
 			.map { note in
@@ -365,7 +342,7 @@ struct WardNotesView: View {
 			}
 			.joined(separator: "\n\n---\n\n")
 	}
-    
+	
 	private func favouriteSelected() {
 		let newValue = !allSelectedAreFavourite
 		for note in selectedNotes {
@@ -373,16 +350,16 @@ struct WardNotesView: View {
 		}
 		setSelecting(false)
 	}
-    
+	
 	private func deleteSelected() {
 		for note in selectedNotes {
 			modelContext.delete(note)
 		}
 		setSelecting(false)
 	}
-    
-	// MARK: - Subviews
-    
+	
+		// MARK: - Subviews
+	
 	private var noResults: some View {
 		ContentUnavailableView {
 			Label("No Matching Notes", systemImage: "line.3.horizontal.decrease.circle")
@@ -394,32 +371,8 @@ struct WardNotesView: View {
 		.frame(maxWidth: .infinity)
 		.padding(.top, 40)
 	}
-    
-	private var filterButton: some View {
-		Button {
-			showingFilter = true
-		} label: {
-			Label("Filter", systemImage: filter.isActive
-				? "line.3.horizontal.decrease.circle.fill"
-				: "line.3.horizontal.decrease.circle")
-		}
-	}
-    
-	private var composeButton: some View {
-		Button {
-			compose()
-		} label: {
-			Image(systemName: "pencil.and.scribble")
-				.font(.title2)
-				.fontWeight(.bold)
-				.frame(width: 45, height: 45)
-		}
-		.buttonStyle(.glassProminent)
-		.buttonBorderShape(.circle)
-		.accessibilityLabel("New Note")
-	}
-    
-	/// Inserts a blank note and opens it in the editor
+	
+		/// Inserts a blank note and opens it in the editor
 	private func compose() {
 		let note = Note()
 		modelContext.insert(note)

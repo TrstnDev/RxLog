@@ -1,48 +1,70 @@
-//
-//  SearchView.swift
-//  RxLog
-//
-//  Created by Tristan Kriel on 2026/07/21.
-//
+	//
+	//  SearchView.swift
+	//  RxLog
+	//
+	//  Created by Tristan Kriel on 2026/07/21.
+	//
 
 import SwiftData
 import SwiftUI
 
-/// Universal search tab: renders sectioned results for the query state
-/// owned by ``MainTabView``'s search field
+	/// Universal search tab: renders sectioned results for the query state
+	/// owned by ``MainTabView``'s search field
 struct SearchView: View {
 	@Query(sort: \Patient.createdAt, order: .reverse) private var patients: [Patient]
 	@Query private var notes: [Note]
 	
-	// Patient results respect same regulatory gate as Patients tab
+		// Patient results respect same regulatory gate as Patients tab
 	@AppStorage(PatientConsent.acceptedVersionKey) private var acceptedVersion = 0
 	
-	// Search field state
+		// Search field state
 	@State private var searchText = ""
 	
-	// Result routing
+		// Result routing
 	@State private var viewingPatient: Patient?
 	@State private var editingNote: Note?
 	
-	// Recents
+		// Recents
 	@State private var recents = RecentSearchesStore()
 	
 	private var trimmedText: String {
 		searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 	}
 	
-	/// Idle until the user types or picks a token
+		/// Idle until the user types
 	private var isIdle: Bool {
 		trimmedText.isEmpty
 	}
 	
-	/// Patients are searchable only after the declaration is accepted
+		/// Patients are searchable only after the declaration is accepted
 	private var searchablePatients: [Patient] {
 		acceptedVersion >= PatientConsent.currentVersion ? patients : []
 	}
 	
+		/// Recents resolved against live models, preserving recency order.
+		///
+		/// Resolution is pure in-memory dictionary lookup on model-owned UUIDs —
+		/// deleted notes and expired/removed patients fail to resolve and are simply
+		/// not shown, so the UI can never surface a dead entry even before
+		/// ``pruneRecents()`` runs.
+	private var resolvedRecents: [ResolvedRecent] {
+		let patientsByID = Dictionary(uniqueKeysWithValues: patients.map { ($0.uuid, $0) })
+		let notesByID = Dictionary(uniqueKeysWithValues: notes.map { ($0.uuid, $0) })
+		
+		return recents.entries.compactMap { entry in
+			switch entry.kind {
+			case .patient:
+				guard let patient = patientsByID[entry.id], !patient.isExpired else { return nil }
+				return .patient(patient, entry: entry)
+			case .note:
+				guard let note = notesByID[entry.id] else { return nil }
+				return .note(note, entry: entry)
+			}
+		}
+	}
+	
 	var body: some View {
-		// Build sections once per render
+			// Build sections once per render
 		let sections = UniversalSearch.sections(
 			patients: searchablePatients,
 			notes: notes,
@@ -59,33 +81,55 @@ struct SearchView: View {
 				.navigationDestination(item: $editingNote) { note in
 					NoteEditorView(note: note)
 				}
+				.onAppear(perform: pruneRecents)
 		}
 	}
 	
-	// MARK: - Recents
+		// MARK: - Recents
 	
-	/// Sweep stale entries: expired patients and deleted notes
-	private func garbageCollectRecents() {
-		let validPatients = Set(patients.map { $0.persistentModelID.hashValue })
-		let validNotes = Set(notes.map { $0.persistentModelID.hashValue })
-		recents.gc(validPatientIDs: validPatients, validNoteIDs: validNotes)
+		/// Sweeps stored entries that no longer point at a live, in-window model
+	private func pruneRecents() {
+		var valid = Set(notes.map(\.uuid))
+		for patient in patients where !patient.isExpired {
+			valid.insert(patient.uuid)
+		}
+		recents.prune(keeping: valid)
 	}
 	
-	private func recentsList() -> some View {
+		/// Opens a recent selection and bumps it to the front of the list
+	private func open(_ recent: ResolvedRecent) {
+		switch recent {
+		case .patient(let patient, _):
+			recents.record(patient)
+			viewingPatient = patient
+		case .note(let note, _):
+			recents.record(note)
+			editingNote = note
+		}
+	}
+	
+	private func recentsList(_ items: [ResolvedRecent]) -> some View {
 		VStack(alignment: .leading, spacing: 0) {
-			ForEach(recents.recentSearches) { entry in
-				RecentSearchRow(entry: entry)
+			ForEach(items) { recent in
+				RecentSearchRow(recent: recent)
+					.onTapGesture { open(recent) }
+					.contextMenu {
+						Button("Remove", systemImage: "minus.circle", role: .destructive) {
+							recents.remove(recent.entry)
+						}
+					}
 			}
 		}
 		.padding(.horizontal)
 	}
 	
-	// MARK: - Content
+		// MARK: - Content
 	
 	@ViewBuilder
 	private func content(sections: [SearchResultSection]) -> some View {
 		if isIdle {
-			if recents.recentSearches.isEmpty {
+			let recentItems = resolvedRecents
+			if recentItems.isEmpty {
 				ContentUnavailableView(
 					"Recent Searches",
 					systemImage: "clock.arrow.circlepath",
@@ -101,7 +145,7 @@ struct SearchView: View {
 							.frame(maxWidth: .infinity, alignment: .leading)
 							.padding(.horizontal)
 						
-						recentsList()
+						recentsList(recentItems)
 							.background {
 								RoundedRectangle(cornerRadius: 12, style: .continuous)
 									.fill(Color(.secondarySystemGroupedBackground))
@@ -144,26 +188,26 @@ struct SearchView: View {
 		.scrollDismissesKeyboard(.interactively)
 	}
 	
-	/// Dispatches each result kind to its row and destination
+		/// Dispatches each result kind to its row and destination
 	@ViewBuilder
 	private func row(for result: SearchResult) -> some View {
 		switch result {
 		case .patient(let patient):
 			PatientSearchRow(patient: patient)
 				.onTapGesture {
-					recents.addPatient(patient)
+					recents.record(patient)
 					viewingPatient = patient
 				}
 		case .note(let note, let snippet):
 			NoteSearchRow(note: note, snippet: snippet)
 				.onTapGesture {
-					recents.addNote(note)
+					recents.record(note)
 					editingNote = note
 				}
 		}
 	}
 	
-	/// Frosted pinned header, matching Ward Notes list treatment
+		/// Frosted pinned header, matching Ward Notes list treatment
 	private func sectionHeader(_ title: String) -> some View {
 		Text(title)
 			.font(.headline.weight(.semibold))
@@ -178,21 +222,47 @@ struct SearchView: View {
 	}
 }
 
-// MARK: - Recent Search Row
+	// MARK: - Resolved Recent
 
-/// A single recent-search entry: icon, display name, type badge, and relative date.
-private struct RecentSearchRow: View {
-	let entry: RecentSearchesStore.Entry
+	/// A recents entry paired with the live model it resolved to
+private enum ResolvedRecent: Identifiable {
+	case patient(Patient, entry: RecentSearchesStore.Entry)
+	case note(Note, entry: RecentSearchesStore.Entry)
 	
-	var systemImage: String {
-		switch entry.type {
+	var id: UUID {
+		entry.id
+	}
+	
+	var entry: RecentSearchesStore.Entry {
+		switch self {
+		case .patient(_, let entry), .note(_, let entry): entry
+		}
+	}
+	
+		/// Display name read from the live model, never a stored snapshot
+	var displayName: String {
+		switch self {
+		case .patient(let patient, _): patient.displayName
+		case .note(let note, _): note.title.isEmpty ? "Untitled Note" : note.title
+		}
+	}
+}
+
+	// MARK: - Recent Search Row
+
+	/// A single recent-search entry: icon, live display name, type badge, and relative date
+private struct RecentSearchRow: View {
+	let recent: ResolvedRecent
+	
+	private var systemImage: String {
+		switch recent {
 		case .patient: "person.fill"
 		case .note: "text.pad.header"
 		}
 	}
 	
-	var typeLabel: String {
-		switch entry.type {
+	private var typeLabel: String {
+		switch recent {
 		case .patient: "Patient"
 		case .note: "Note"
 		}
@@ -206,10 +276,10 @@ private struct RecentSearchRow: View {
 				.frame(width: 32, alignment: .leading)
 			
 			VStack(alignment: .leading, spacing: 2) {
-				Text(entry.displayName)
+				Text(recent.displayName)
 					.font(.subheadline.weight(.medium))
 					.lineLimit(1)
-				Text("\(typeLabel) · \(entry.selectedAt, format: .relative(presentation: .numeric)))")
+				Text("\(typeLabel) · \(recent.entry.selectedAt, format: .relative(presentation: .named))")
 					.font(.caption)
 					.foregroundStyle(.secondary)
 			}
