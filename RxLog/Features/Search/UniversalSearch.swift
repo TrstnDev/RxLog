@@ -1,5 +1,5 @@
 //
-//  SearchModel.swift
+//  UniversalSearch.swift
 //  RxLog
 //
 //  Created by Tristan Kriel on 2026/07/21.
@@ -33,7 +33,7 @@ struct SearchResultSection: Identifiable {
 	let results: [SearchResult]
 }
 
-// MARK: -Engine
+// MARK: - Engine
 
 /// Single transform from raw models + query state to display-ready sections
 enum UniversalSearch {
