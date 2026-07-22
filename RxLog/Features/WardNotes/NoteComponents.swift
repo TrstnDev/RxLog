@@ -166,32 +166,6 @@ struct NoteSectionedGrid: View {
 
 // MARK: - Selection
 
-// MARK: Selection Indicator
-
-/// Circular checkbox shown on a note in Select mode
-struct SelectionIndicator: View {
-	let isSelected: Bool
-	
-	var body: some View {
-		ZStack {
-			Circle()
-				.fill(isSelected ? Color.accentColor : Color(.systemBackground))
-				.overlay {
-					Circle().strokeBorder(
-						isSelected ? .clear : Color.gray.opacity(0.5),
-						lineWidth: 1.5
-					)
-				}
-			if isSelected {
-				Image(systemName: "checkmark")
-					.font(.system(size: 13, weight: .bold))
-					.foregroundStyle(.white)
-			}
-		}
-		.frame(width: 24, height: 24)
-	}
-}
-
 // MARK: Selectable Modifier
 
 /// Adds select-mode behaviour to a card: indicator, highlight border, and tap bounce

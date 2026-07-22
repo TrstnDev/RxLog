@@ -7,17 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Consent Record
-
-/// Versioned record of the user's acceptance of the patient-data legal declaration
-///
-/// Increment `currentVersion` whenever the declaration wording changes; users who accepted older versions are re-prompted on next entry
-enum PatientConsent {
-	static let currentVersion = 1
-	static let acceptedVersionKey = "patientConsentAcceptedVersion"
-	static let acceptedDateKey = "patientConsentAcceptedDate"
-}
-
 // MARK: - Pane Model
 
 /// Content for a single splash pane
