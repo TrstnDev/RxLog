@@ -44,6 +44,7 @@ struct NoteFilterSheet: View {
 		}
 		.presentationDetents([.medium])
 		.presentationDragIndicator(.visible)
+		.background(Material.ultraThin)
 	}
 }
 

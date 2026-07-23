@@ -21,7 +21,7 @@ struct NotePreviewCard: View {
 				.font(.headline)
 				.fontWeight(.bold)
 				.lineLimit(2)
-			Text(note.content)
+			Text(note.plainText)
 				.font(.subheadline)
 				.fontWeight(.medium)
 				.foregroundStyle(.secondary)

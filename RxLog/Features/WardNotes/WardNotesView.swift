@@ -101,52 +101,46 @@ struct WardNotesView: View {
 				.disabled(selectedNoteIDs.isEmpty)
 			}
 		} else {
-			ToolbarItem(placement: .topBarTrailing) {
-				Menu {
-					Section {
-						Button("Select", systemImage: "checkmark.circle") {
-							setSelecting(true)
-						}
-						.disabled(visibleNotes.isEmpty)
-						
-						Button {
-							showingFilter = true
-						} label: {
-							Label(
-								"Filter",
-								systemImage: filter.isActive
-								? "line.3.horizontal.decrease.circle.fill"
-								: "line.3.horizontal.decrease.circle"
-							)
-						}
+			ToolbarOverflowMenu {
+				Section {
+					Button("Select", systemImage: "checkmark.circle") {
+						setSelecting(true)
 					}
+					.disabled(visibleNotes.isEmpty)
 					
-					Section {
-						Picker("Display Style", selection: $displayStyle) {
-							ForEach(NoteDisplayStyle.allCases) { style in
-								Label(style.label, systemImage: style.systemImage).tag(style)
-							}
-						}
-						.pickerStyle(.inline)
+					Button {
+						showingFilter = true
+					} label: {
+						Label(
+							"Filter",
+							systemImage: filter.isActive
+							? "line.3.horizontal.decrease.circle.fill"
+							: "line.3.horizontal.decrease.circle"
+						)
 					}
-					
-					Section {
-						Picker("Sort By", selection: $sortOption) {
-							ForEach(NoteSortOption.allCases) { option in
-								Text(option.label).tag(option)
-							}
-						}
-						.pickerStyle(.inline)
-					}
-					
-					Section {
-						Button("Export", systemImage: "square.and.arrow.up") { }
-						Button("Stats", systemImage: "chart.bar") { }
-					}
-				} label: {
-					Image(systemName: "ellipsis")
 				}
-				.accessibilityLabel("Options")
+				
+				Section {
+					Picker("Display Style", selection: $displayStyle) {
+						ForEach(NoteDisplayStyle.allCases) { style in
+							Label(style.label, systemImage: style.systemImage).tag(style)
+						}
+					}
+					.pickerStyle(.inline)
+				}
+				
+				Section {
+					Picker("Sort By", selection: $sortOption) {
+						ForEach(NoteSortOption.allCases) { option in
+							Text(option.label).tag(option)
+						}
+					}
+					.pickerStyle(.inline)
+				}
+				
+				Section {
+					Button("Export", systemImage: "square.and.arrow.up") { }
+				}
 			}
 			
 				// Primary creation action: pinned so it never collapses into overflow

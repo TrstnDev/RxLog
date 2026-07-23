@@ -11,7 +11,11 @@ import SwiftData
 struct PatientDetailView: View {
 	let patient: Patient
 	
+	@Environment(\.modelContext) private var modelContext
+	@Environment(\.dismiss) private var dismiss
+	
 	@State private var logsExpanded = true
+	@State private var showingDeleteConfirmation = false
 	
 	// Dark, gradient-hued ink for everything sitting over the light upper region
 	private var ink: Color { patient.gradient.darkText }
@@ -42,22 +46,32 @@ struct PatientDetailView: View {
 				.minimumScaleFactor(0.7)
 				.foregroundStyle(ink)
 			}
-			ToolbarItem(placement: .topBarTrailing) {
-				Button {
-					// TODO: overflow menu - edit details, delete
+			ToolbarOverflowMenu {
+				// TODO: Edit Details action once the editing flow exists
+				Button(role: .destructive) {
+					showingDeleteConfirmation = true
 				} label: {
-					Image(systemName: "ellipsis")
-						.foregroundStyle(ink.mix(with: .black, by: 0.5))
-						.fontWeight(.semibold)
+					Label("Delete Profile", systemImage: "trash")
 				}
-				.accessibilityLabel("Options")
 			}
 		}
 		.toolbarBackground(.hidden, for: .navigationBar)
 		.toolbarColorScheme(.light, for: .navigationBar)
+		.alert("Delete Profile?", isPresented: $showingDeleteConfirmation) {
+			Button("Delete", role: .destructive) { deleteProfile() }
+			Button("Cancel", role: .cancel) {}
+		} message: {
+			Text("This permanently removes the profile and can't be undone.")
+		}
 		.toolbarTitleDisplayMode(.inline)
 		.environment(\.colorScheme, .dark)
 		.toolbarVisibility(.hidden, for: .tabBar)
+	}
+	
+	/// Dismisses first so the pop animation never renders a deleted model
+	private func deleteProfile() {
+		dismiss()
+		modelContext.delete(patient)
 	}
 	
 	// MARK: - Hero

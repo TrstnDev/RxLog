@@ -13,19 +13,28 @@ import SwiftUI
 ///
 /// Sizes to its container; used on overview card and profile header
 struct PatientAvatar: View {
+	@Environment(\.colorScheme) var colorScheme
 	let glyph: AvatarGlyph
 	var size: CGFloat = 100
+	let lightGradient: [Color] = [
+		.white.opacity(0.8),
+		.white.opacity(0.625),
+		.white.opacity(0.45),
+		.white.opacity(0.275),
+		.white.opacity(0.1)
+	]
+	let darkGradient: [Color] = [
+		.black.opacity(0.8),
+		.black.opacity(0.625),
+		.black.opacity(0.45),
+		.black.opacity(0.275),
+		.black.opacity(0.1)
+	]
 	
-	/// White fill with vertical opacity fade
+	/// Colorscheme-aware fill with vertical opacity fade
 	private var gloss: LinearGradient {
 		LinearGradient(
-			colors: [
-				.white.opacity(0.8),
-				.white.opacity(0.625),
-				.white.opacity(0.45),
-				.white.opacity(0.275),
-				.white.opacity(0.1)
-			],
+			colors: colorScheme == .light ? lightGradient : darkGradient,
 			startPoint: .top,
 			endPoint: .bottom
 		)

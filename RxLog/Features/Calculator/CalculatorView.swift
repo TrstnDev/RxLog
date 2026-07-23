@@ -16,7 +16,7 @@ struct CalculatorView: View {
 				systemImage: "function",
 				description: Text("Clinical calculators will live here.")
 			)
-			.navigationTitle("Calculator")
+			.navigationTitle("Calculators")
 		}
 	}
 }

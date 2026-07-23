@@ -464,7 +464,7 @@ private struct CarouselPicker<Item: Hashable, Content: View>: View {
 
 // MARK: - Notched Panel
 
-/// Rounded rectangle with an upward, round-tpped pointer notched into its top
+/// Rounded rectangle with an upward, round-topped pointer notched into its top
 private struct NotchedPanel: Shape {
 	var cornerRadius: CGFloat = 28
 	var pointerWidth: CGFloat = 44
