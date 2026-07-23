@@ -8,45 +8,45 @@
 import SwiftData
 import SwiftUI
 
-	/// Universal search tab: owns its search field state and renders for the query state
-	/// sectioned results from ``UniversalSearch``
+/// Universal search tab: owns its search field state and renders for the query state
+/// sectioned results from ``UniversalSearch``
 struct SearchView: View {
 	@Query(sort: \Patient.createdAt, order: .reverse) private var patients: [Patient]
 	@Query private var notes: [Note]
 	
-		// Patient results respect same regulatory gate as Patients tab
+	// Patient results respect same regulatory gate as Patients tab
 	@AppStorage(PatientConsent.acceptedVersionKey) private var acceptedVersion = 0
 	
-		// Search field state
+	// Search field state
 	@State private var searchText = ""
 	
-		// Result routing
+	// Result routing
 	@State private var viewingPatient: Patient?
 	@State private var editingNote: Note?
 	
-		// Recents
+	// Recents
 	@State private var recents = RecentSearchesStore()
 	
 	private var trimmedText: String {
 		searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 	}
 	
-		/// Idle until the user types
+	/// Idle until the user types
 	private var isIdle: Bool {
 		trimmedText.isEmpty
 	}
 	
-		/// Patients are searchable only after the declaration is accepted
+	/// Patients are searchable only after the declaration is accepted
 	private var searchablePatients: [Patient] {
 		acceptedVersion >= PatientConsent.currentVersion ? patients : []
 	}
 	
-		/// Recents resolved against live models, preserving recency order.
-		///
-		/// Resolution is pure in-memory dictionary lookup on model-owned UUIDs —
-		/// deleted notes and expired/removed patients fail to resolve and are simply
-		/// not shown, so the UI can never surface a dead entry even before
-		/// ``pruneRecents()`` runs.
+	/// Recents resolved against live models, preserving recency order.
+	///
+	/// Resolution is pure in-memory dictionary lookup on model-owned UUIDs —
+	/// deleted notes and expired/removed patients fail to resolve and are simply
+	/// not shown, so the UI can never surface a dead entry even before
+	/// ``pruneRecents()`` runs.
 	private var resolvedRecents: [ResolvedRecent] {
 		let patientsByID = Dictionary(uniqueKeysWithValues: patients.map { ($0.uuid, $0) })
 		let notesByID = Dictionary(uniqueKeysWithValues: notes.map { ($0.uuid, $0) })

@@ -304,4 +304,15 @@ enum SampleData {
 	}
 }
 
+/// Living spec of export output; exercises the modified-date threshold,
+/// untitled headings, and stitching against the fixtures
+#Preview("Export Output") {
+	ScrollView {
+		Text(NoteExporter.stitchedMarkdown(for: SampleData.sampleNotes))
+			.font(.system(.footnote, design: .monospaced))
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.padding()
+	}
+}
+
 #endif
