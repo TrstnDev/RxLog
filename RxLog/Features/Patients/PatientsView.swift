@@ -124,19 +124,18 @@ private struct PatientsHome: View {
 	
 	private func card(for patient: Patient) -> some View {
 		PatientCard(patient: patient)
-			.overlay(alignment: .topTrailing) {
-				if isSelecting {
-					SelectionIndicator(isSelected: selection.contains(patient.id))
-						.padding(10)
+			.selectable(
+				isSelecting: isSelecting,
+				isSelected: selection.contains(patient.id),
+				cornerRadius: 28,
+				onTap: {
+					if isSelecting {
+						toggleSelection(patient)
+					} else {
+						viewingPatient = patient
+					}
 				}
-			}
-			.onTapGesture {
-				if isSelecting {
-					toggleSelection(patient)
-				} else {
-					viewingPatient = patient
-				}
-			}
+			)
 			.contextMenu {
 				if !isSelecting {
 					Button(role: .destructive) {

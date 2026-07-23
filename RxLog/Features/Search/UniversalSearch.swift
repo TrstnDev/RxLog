@@ -98,7 +98,7 @@ enum UniversalSearch {
 		}
 		
 		let ranked: [Ranked] = notes.compactMap { note in
-			let titleHit = note.title.localizedStandardContains(query)
+			let titleHit = note.displayTitle.localizedStandardContains(query)
 			let bodySnippet = snippet(in: note.plainText, matching: query)
 			guard titleHit || bodySnippet != nil else { return nil }
 			

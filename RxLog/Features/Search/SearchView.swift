@@ -230,7 +230,7 @@ private enum ResolvedRecent: Identifiable {
 	var displayName: String {
 		switch self {
 		case .patient(let patient, _): patient.displayName
-		case .note(let note, _): note.title.isEmpty ? "Untitled Note" : note.title
+		case .note(let note, _): note.displayTitle
 		}
 	}
 }

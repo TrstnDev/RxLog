@@ -72,7 +72,7 @@ struct NoteSearchRow: View {
 				)
 			
 			VStack(alignment: .leading, spacing: 2) {
-				Text(note.title)
+				Text(note.displayTitle)
 					.font(.headline)
 					.lineLimit(1)
 				if let subtitle {

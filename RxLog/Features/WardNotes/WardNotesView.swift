@@ -343,7 +343,7 @@ struct WardNotesView: View {
 	private var shareText: String {
 		selectedNotes
 			.map { note in
-				note.plainText.isEmpty ? note.title : "\(note.title)\n\n\(note.plainText)"
+				note.plainText.isEmpty ? note.displayTitle : "\(note.displayTitle)\n\n\(note.plainText)"
 			}
 			.joined(separator: "\n\n---\n\n")
 	}

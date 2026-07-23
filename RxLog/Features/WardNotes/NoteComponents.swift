@@ -17,7 +17,7 @@ struct NotePreviewCard: View {
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 8) {
-			Text(note.title)
+			Text(note.displayTitle)
 				.font(.headline)
 				.fontWeight(.bold)
 				.lineLimit(2)
@@ -71,7 +71,7 @@ struct NoteListRow: View {
 					in: RoundedRectangle(cornerRadius: 10, style: .continuous)
 				)
 			VStack(alignment: .leading, spacing: 2) {
-				Text(note.title)
+				Text(note.displayTitle)
 					.font(.headline)
 					.lineLimit(1)
 				Text(note.plainText)
@@ -117,9 +117,10 @@ struct NoteWaterfall: View {
 				LazyVStack(spacing: spacing) {
 					ForEach(columnNotes) { note in
 						NotePreviewCard(note: note)
-							.noteSelectable(
+							.selectable(
 								isSelecting: isSelecting,
 								isSelected: selectedIDs.contains(note.id),
+								cornerRadius: 25,
 								onTap: { onTap(note) }
 							)
 					}
@@ -150,9 +151,10 @@ struct NoteSectionedGrid: View {
 					}
 					ForEach(section.notes) { note in
 						NotePreviewCard(note: note)
-							.noteSelectable(
+							.selectable(
 								isSelecting: isSelecting,
 								isSelected: selectedIDs.contains(note.id),
+								cornerRadius: 25,
 								onTap: { onTap(note) }
 							)
 					}
@@ -161,68 +163,6 @@ struct NoteSectionedGrid: View {
 		}
 		.padding(.horizontal)
 		.padding(.top, 8)
-	}
-}
-
-// MARK: - Selection
-
-// MARK: Selectable Modifier
-
-/// Adds select-mode behaviour to a card: indicator, highlight border, and tap bounce
-struct NoteSelectable: ViewModifier {
-	let isSelecting: Bool
-	let isSelected: Bool
-	var cornerRadius: CGFloat = 25
-	let onTap: () -> Void
-	
-		/// Retriggers the bounce animation on each tap
-	@State private var bounceTrigger = 0
-	
-	func body(content: Content) -> some View {
-		content
-			.overlay(alignment: .topLeading) {
-				if isSelecting {
-					SelectionIndicator(isSelected: isSelected)
-						.padding(10)
-						.transition(.scale.combined(with: .opacity))
-				}
-			}
-			.overlay {
-				if isSelecting && isSelected {
-					RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-						.strokeBorder(Color.accentColor, lineWidth: 3)
-				}
-			}
-			.contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-			.onTapGesture {
-				if isSelecting { bounceTrigger += 1 }
-				onTap()
-			}
-			.keyframeAnimator(initialValue: 1.0, trigger: bounceTrigger) { view, scale in
-				view.scaleEffect(scale)
-			} keyframes: { _ in
-				SpringKeyframe(0.91, duration: 0.14, spring: .snappy)
-				SpringKeyframe(1.0, duration: 0.5, spring: .bouncy)
-			}
-	}
-}
-
-// MARK: View + noteSelectable
-
-/// Applies `NoteSelectable` to a card
-extension View {
-	func noteSelectable(
-		isSelecting: Bool,
-		isSelected: Bool,
-		cornerRadius: CGFloat = 25,
-		onTap: @escaping () -> Void
-	) -> some View {
-		modifier(NoteSelectable(
-			isSelecting: isSelecting,
-			isSelected: isSelected,
-			cornerRadius: cornerRadius,
-			onTap: onTap
-		))
 	}
 }
 

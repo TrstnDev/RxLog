@@ -43,6 +43,14 @@ final class Note {
 		}
 	}
 	
+	/// Title for display surfaces; dated placeholder when blank
+	var displayTitle: String {
+		let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+		return trimmed.isEmpty
+			? "Untitled (\(dateCreated.formatted(date: .numeric, time: .omitted)))"
+			: title
+	}
+	
 	init(
 		title: String = "",
 		content: AttributedString = AttributedString(),
