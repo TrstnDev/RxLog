@@ -8,32 +8,50 @@
 import SwiftData
 import SwiftUI
 
-	/// Ward Notes home screen: searchable, filterable notes with multi-select and three layouts
+/// Ward Notes home screen: searchable, filterable notes with multi-select and three layouts
 struct WardNotesView: View {
 	@Environment(\.modelContext) private var modelContext
 	@Query private var allNotes: [Note]
 	
-		// Presentation
+	// Presentation
 	@AppStorage("wardNotesDisplayStyle") private var displayStyle: NoteDisplayStyle = .waterfall
 	@AppStorage("wardNotesSortOption") private var sortOption: NoteSortOption = .dateModified
 	@State private var filter = NoteFilter()
 	@State private var showingFilter = false
 	
-		// Selection
+	// Selection
 	@State private var isSelecting = false
 	@State private var selectedNoteIDs = Set<Note.ID>()
 	@State private var pendingDeletion: PendingDeletion?
 	
-		/// Editor routing
+	/// Editor routing
 	@State private var editingNote: Note?
 	
+	/// Pipeline cache
+	@State private var cachedSections: [NoteSection] = []
+	
+	/// Single hash over every input the pipeline reads
+	private var pipelineFingerprint: Int {
+		var hasher = Hasher()
+		hasher.combine(filter)
+		hasher.combine(sortOption)
+		for note in allNotes {
+			hasher.combine(note.id)
+			hasher.combine(note.title)
+			hasher.combine(note.dateCreated)
+			hasher.combine(note.dateModified)
+			hasher.combine(note.lastViewed)
+			hasher.combine(note.isFavourite)
+		}
+		return hasher.finalize()
+	}
+	
 	var body: some View {
-			// Build selections once per render
-		let sections = NoteListPipeline.sections(
-			from: allNotes,
-			filter: filter,
-			sortOption: sortOption
-		)
+		// Serve from the cache, dropping just-deleted notes before fingerprint recompute lands
+		let sections = cachedSections.compactMap { section -> NoteSection? in
+			let live = section.notes.filter { !$0.isDeleted }
+			return live.isEmpty ? nil : NoteSection(id: section.id, title: section.title, notes: live)
+		}
 		let visibleNotes = sections.flatMap(\.notes)
 		
 		NavigationStack {
@@ -55,9 +73,16 @@ struct WardNotesView: View {
 					NoteEditorView(note: note)
 				}
 		}
+		.onChange(of: pipelineFingerprint, initial: true) {
+			cachedSections = NoteListPipeline.sections(
+				from: allNotes,
+				filter: filter,
+				sortOption: sortOption
+			)
+		}
 	}
 	
-		// MARK: - Toolbar
+	// MARK: - Toolbar
 	
 	@ToolbarContentBuilder
 	private func toolbarContent(visibleNotes: [Note]) -> some ToolbarContent {
@@ -156,7 +181,7 @@ struct WardNotesView: View {
 		}
 	}
 	
-		// MARK: - Content
+	// MARK: - Content
 	
 	@ViewBuilder
 	private func content(sections: [NoteSection], visibleNotes: [Note]) -> some View {
@@ -251,7 +276,7 @@ struct WardNotesView: View {
 		}
 	}
 	
-		/// List row with a leading selection circle while selecting
+	/// List row with a leading selection circle while selecting
 	private func listRow(_ note: Note) -> some View {
 		HStack(spacing: 12) {
 			if isSelecting {
@@ -264,7 +289,7 @@ struct WardNotesView: View {
 		.onTapGesture { handleTap(note) }
 	}
 	
-		// MARK: - Selection Helpers
+	// MARK: - Selection Helpers
 	
 	private var navTitle: String {
 		guard isSelecting else { return "Ward Notes" }
@@ -304,7 +329,7 @@ struct WardNotesView: View {
 		}
 	}
 	
-		// MARK: - Bulk Actions
+	// MARK: - Bulk Actions
 	
 	private var selectedNotes: [Note] {
 		allNotes.filter { selectedNoteIDs.contains($0.id) }
@@ -314,7 +339,7 @@ struct WardNotesView: View {
 		!selectedNotes.isEmpty && selectedNotes.allSatisfy(\.isFavourite)
 	}
 	
-		/// Plain-text rendering of the selected notes for the share sheet
+	/// Plain-text rendering of the selected notes for the share sheet
 	private var shareText: String {
 		selectedNotes
 			.map { note in

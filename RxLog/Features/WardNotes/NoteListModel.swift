@@ -74,7 +74,7 @@ enum NoteSortOption: String, CaseIterable, Identifiable {
 // MARK: - Filtering
 
 /// Active filter state for the list
-struct NoteFilter: Equatable {
+struct NoteFilter: Hashable {
 	var dateRange: DateRangeOption = .all
 	var favouritesOnly: Bool = false
     
