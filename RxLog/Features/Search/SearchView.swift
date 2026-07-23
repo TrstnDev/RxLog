@@ -1,15 +1,15 @@
-	//
-	//  SearchView.swift
-	//  RxLog
-	//
-	//  Created by Tristan Kriel on 2026/07/21.
-	//
+//
+//  SearchView.swift
+//  RxLog
+//
+//  Created by Tristan Kriel on 2026/07/21.
+//
 
 import SwiftData
 import SwiftUI
 
-	/// Universal search tab: renders sectioned results for the query state
-	/// owned by ``MainTabView``'s search field
+	/// Universal search tab: owns its search field state and renders for the query state
+	/// sectioned results from ``UniversalSearch``
 struct SearchView: View {
 	@Query(sort: \Patient.createdAt, order: .reverse) private var patients: [Patient]
 	@Query private var notes: [Note]

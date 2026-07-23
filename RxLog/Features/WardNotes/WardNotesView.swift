@@ -31,7 +31,6 @@ struct WardNotesView: View {
 			// Build selections once per render
 		let sections = NoteListPipeline.sections(
 			from: allNotes,
-			searchText: "",
 			filter: filter,
 			sortOption: sortOption
 		)

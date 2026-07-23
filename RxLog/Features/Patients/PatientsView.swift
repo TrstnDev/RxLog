@@ -44,8 +44,6 @@ struct PatientsView: View {
 // MARK: - Home
 
 /// The patient overview: a two-column grid of profile cards
-///
-/// Expired profiles are swept on appear (data minimisation), so the grid only shows profiles still inside their retention window
 private struct PatientsHome: View {
 	@Environment(\.modelContext) private var modelContext
 	@Query(sort: \Patient.createdAt, order: .reverse) private var patients: [Patient]
@@ -69,13 +67,20 @@ private struct PatientsHome: View {
 		var id: String { rawValue }
 	}
 	
+	/// Profiles still inside their retention window; expired rows disappear
+	private var activePatients: [Patient] {
+		patients.filter { !$0.isExpired }
+	}
+	
 	/// Profiles ordered by the current sort choice
 	private var sortedPatients: [Patient] {
 		switch sortOption {
-		case .recentlyAdded: patients
-		case .expiringSoon: patients.sorted { $0.expiresAt < $1.expiresAt }
+		case .recentlyAdded:
+			activePatients
+		case .expiringSoon:
+			activePatients.sorted { $0.expiresAt < $1.expiresAt }
 		case .name:
-			patients
+			activePatients
 				.map { (name: $0.displayName, patient: $0) }
 				.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 				.map { $0.patient }
@@ -94,13 +99,12 @@ private struct PatientsHome: View {
 		.fullScreenCover(isPresented: $showingCreation) {
 			PatientCreationView()
 		}
-		.onAppear(perform: sweepExpired)
 	}
 	
 	// MARK: - Content
 	
 	@ViewBuilder private var content: some View {
-		if patients.isEmpty {
+		if activePatients.isEmpty {
 			ContentUnavailableView(
 				"No Patients Yet",
 				systemImage: "person.3.fill",
@@ -154,7 +158,7 @@ private struct PatientsHome: View {
 					isSelecting.toggle()
 				}
 			}
-			.disabled(patients.isEmpty && !isSelecting)
+			.disabled(activePatients.isEmpty && !isSelecting)
 		}
 		
 		if isSelecting {
@@ -188,13 +192,6 @@ private struct PatientsHome: View {
 	}
 	
 	// MARK: - Actions
-	
-	/// Permanently deletes profiles past their expiry; runs on tab open, per retention policy
-	private func sweepExpired() {
-		for patient in patients where patient.isExpired {
-			modelContext.delete(patient)
-		}
-	}
 	
 	private func toggleSelection(_ patient: Patient) {
 		if selection.contains(patient.id) {

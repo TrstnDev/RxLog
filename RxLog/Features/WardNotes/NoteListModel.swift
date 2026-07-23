@@ -199,17 +199,11 @@ enum NoteListPipeline {
 	/// - Returns: Date-buckets sections for date sorts, or one untitled section for `.title`
 	static func sections(
 		from notes: [Note],
-		searchText: String,
 		filter: NoteFilter,
 		sortOption: NoteSortOption
 	) -> [NoteSection] {
 		// 1. FILTER
-		let filtered = notes.filter { note in
-			guard filter.matches(note) else { return false }
-			guard !searchText.isEmpty else { return true }
-			return note.title.localizedStandardContains(searchText)
-				|| note.plainText.localizedStandardContains(searchText)
-		}
+		let filtered = notes.filter { filter.matches($0) }
         
 		// 2 & 3. SORT + SECTION
 		if let dateKeyPath = sortOption.dateKeyPath {
