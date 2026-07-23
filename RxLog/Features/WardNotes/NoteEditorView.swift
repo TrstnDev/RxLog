@@ -37,7 +37,7 @@ struct NoteEditorView: View {
 				.scrollContentBackground(.hidden)
 				.padding(.horizontal, 12)
 		}
-		.navigationBarTitleDisplayMode(.inline)
+		.toolbarTitleDisplayMode(.inline)
 		.onAppear {
 			text = note.content
 			note.lastViewed = .now

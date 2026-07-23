@@ -67,7 +67,7 @@ struct PatientCreationView: View {
 				.padding()
 			}
 			.navigationTitle("New Patient")
-			.navigationBarTitleDisplayMode(.inline)
+			.toolbarTitleDisplayMode(.inline)
 			.toolbar {
 				ToolbarItem(placement: .topBarLeading) {
 					Button(action: attemptDismiss) {

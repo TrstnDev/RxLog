@@ -22,7 +22,7 @@ struct WardNotesView: View {
 		// Selection
 	@State private var isSelecting = false
 	@State private var selectedNoteIDs = Set<Note.ID>()
-	@State private var showingDeleteConfirmation = false
+	@State private var pendingDeletion: PendingDeletion?
 	
 		/// Editor routing
 	@State private var editingNote: Note?
@@ -39,20 +39,17 @@ struct WardNotesView: View {
 		NavigationStack {
 			content(sections: sections, visibleNotes: visibleNotes)
 				.navigationTitle(navTitle)
-				.navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
+				.toolbarTitleDisplayMode(isSelecting ? .inline : .large)
 				.toolbar { toolbarContent(visibleNotes: visibleNotes) }
 				.toolbarVisibility(isSelecting ? .hidden : .automatic, for: .tabBar)
 				.sheet(isPresented: $showingFilter) {
 					NoteFilterSheet(filter: $filter)
 				}
-				.alert(
-					"Delete \(selectedNoteIDs.count) \(selectedNoteIDs.count == 1 ? "Note" : "Notes")?",
-					isPresented: $showingDeleteConfirmation
-				) {
-					Button("Delete", role: .destructive) { deleteSelected() }
+				.alert("Delete Notes?", item: $pendingDeletion) { pending in
+					Button("Delete", role: .destructive) { delete(pending.ids) }
 					Button("Cancel", role: .cancel) {}
-				} message: {
-					Text("This can't be undone.")
+				} message: { pending in
+					Text("This permanently deletes ^[\(pending.ids.count) note](inflect: true) and can't be undone.")
 				}
 				.navigationDestination(item: $editingNote) { note in
 					NoteEditorView(note: note)
@@ -97,7 +94,7 @@ struct WardNotesView: View {
 				Spacer()
 				
 				Button(role: .destructive) {
-					showingDeleteConfirmation = true
+					pendingDeletion = PendingDeletion(ids: selectedNoteIDs)
 				} label: {
 					Label("Delete", systemImage: "trash")
 				}
@@ -248,17 +245,7 @@ struct WardNotesView: View {
 								}
 							} header: {
 								if let title = section.title {
-									Text(title)
-										.font(.headline.weight(.semibold))
-										.foregroundStyle(.secondary)
-										.frame(maxWidth: .infinity, alignment: .leading)
-										.padding(.horizontal)
-										.padding(.vertical, 9)
-										// Frosted backing keeps pinned headers legible as rows scroll beneath
-										.background {
-											Color(.systemBackground).opacity(0.5)
-												.background(.ultraThinMaterial)
-										}
+									PinnedSectionHeader(title)
 								}
 							}
 						}
@@ -350,14 +337,15 @@ struct WardNotesView: View {
 		setSelecting(false)
 	}
 	
-	private func deleteSelected() {
-		for note in selectedNotes {
+	/// Deletes the captured snapshot of note IDs, then exits selection
+	private func delete(_ ids: Set<Note.ID>) {
+		for note in allNotes where ids.contains(note.id) {
 			modelContext.delete(note)
 		}
 		setSelecting(false)
 	}
 	
-		// MARK: - Subviews
+	// MARK: - Subviews
 	
 	private var noResults: some View {
 		ContentUnavailableView {
@@ -371,12 +359,20 @@ struct WardNotesView: View {
 		.padding(.top, 40)
 	}
 	
-		/// Inserts a blank note and opens it in the editor
+	/// Inserts a blank note and opens it in the editor
 	private func compose() {
 		let note = Note()
 		modelContext.insert(note)
 		editingNote = note
 	}
+}
+
+// MARK: - Pending Deletion
+
+/// Bulk-delete request captured at the moment the user asks so confirmation acts exactly on selection
+private struct PendingDeletion: Identifiable {
+	let id = UUID()
+	let ids: Set<Note.ID>
 }
 
 #Preview {

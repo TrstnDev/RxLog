@@ -55,7 +55,7 @@ struct PatientDetailView: View {
 		}
 		.toolbarBackground(.hidden, for: .navigationBar)
 		.toolbarColorScheme(.light, for: .navigationBar)
-		.navigationBarTitleDisplayMode(.inline)
+		.toolbarTitleDisplayMode(.inline)
 		.environment(\.colorScheme, .dark)
 		.toolbarVisibility(.hidden, for: .tabBar)
 	}

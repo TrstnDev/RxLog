@@ -180,7 +180,7 @@ struct SearchView: View {
 								.padding(.horizontal)
 						}
 					} header: {
-						sectionHeader(section.title)
+						PinnedSectionHeader(section.title)
 					}
 				}
 			}
@@ -207,19 +207,6 @@ struct SearchView: View {
 		}
 	}
 	
-		/// Frosted pinned header, matching Ward Notes list treatment
-	private func sectionHeader(_ title: String) -> some View {
-		Text(title)
-			.font(.headline.weight(.semibold))
-			.foregroundStyle(.secondary)
-			.frame(maxWidth: .infinity, alignment: .leading)
-			.padding(.horizontal)
-			.padding(.vertical, 9)
-			.background {
-				Color(.systemBackground).opacity(0.5)
-					.background(.ultraThinMaterial)
-			}
-	}
 }
 
 	// MARK: - Resolved Recent

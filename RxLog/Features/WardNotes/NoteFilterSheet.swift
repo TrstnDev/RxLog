@@ -30,7 +30,7 @@ struct NoteFilterSheet: View {
 				}
 			}
 			.navigationTitle("Filter")
-			.navigationBarTitleDisplayMode(.inline)
+			.toolbarTitleDisplayMode(.inline)
 			.toolbar {
 				ToolbarItem(placement: .topBarLeading) {
 					Button("Reset") { filter = NoteFilter() }
