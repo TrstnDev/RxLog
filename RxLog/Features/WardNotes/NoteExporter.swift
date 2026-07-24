@@ -33,6 +33,27 @@ enum ExportFormat: String, CaseIterable, Identifiable {
 		case .pdf: "pdf"
 		}
 	}
+	
+	var systemImage: String {
+		switch self {
+		case .plainText: "text.document.fill"
+		case .markdown: "append.page.fill"
+		case .pdf: "richtext.page.fill"
+		}
+	}
+}
+
+/// How exported notes are packaged
+enum ExportPackaging {
+	case separateFiles
+	case oneFile
+}
+
+/// A committed export: the packaging choice plus the exact ordered notes
+struct ExportRequest: Identifiable {
+	let id = UUID()
+	let packaging: ExportPackaging
+	let notes: [Note]
 }
 
 // MARK: - Exporter
@@ -110,9 +131,61 @@ enum NoteExporter {
 	private static let maxFilenameLength = 80
 	
 	/// `Created ...`, plus `Modified ...` only when note has been edited
-	private static func datesLine(for note: Note) -> String {
+	static func datesLine(for note: Note) -> String {
 		let created = "Created \(note.dateCreated.formatted(date: .abbreviated, time: .shortened))"
 		guard note.dateModified.timeIntervalSince(note.dateCreated) >= 1 else { return created }
 		return "\(created) · Modified \(note.dateModified.formatted(date: .abbreviated, time: .shortened))"
+	}
+	
+	/// Creates a fresh, uniquely named directory in tmp for one export session
+	static func makeSessionDirectory() throws -> URL {
+		let session = FileManager.default.temporaryDirectory
+			.appending(path: "NoteExport-\(UUID().uuidString)", directoryHint: .isDirectory)
+		try FileManager.default.createDirectory(at: session, withIntermediateDirectories: true)
+		return session
+	}
+	
+	/// Writes the requested export into `session`
+	static func writeFiles(
+		for request: ExportRequest,
+		format: ExportFormat,
+		into session: URL
+	) throws -> [URL] {
+		let files: [(name: String, data: Data)]
+		
+		switch format {
+		case .pdf:
+			switch request.packaging {
+			case .separateFiles:
+				files = request.notes.map { note in
+					(filename(for: note, format: format), NotePDFRenderer.pdfData(for: [note]))
+				}
+			case .oneFile:
+				files = [(stitchedFilename(format: format), NotePDFRenderer.pdfData(for: request.notes))]
+			}
+		case .plainText, .markdown:
+			let texts: [(name: String, contents: String)]
+			switch request.packaging {
+			case .oneFile:
+				let contents = format == .markdown
+					? stitchedMarkdown(for: request.notes)
+					: stitchedPlainText(for: request.notes)
+				texts = [(stitchedFilename(format: format), contents)]
+			case .separateFiles:
+				texts = request.notes.map { note in
+					let contents = format == .markdown ? markdown(for: note) : plainText(for: note)
+					return (filename(for: note, format: format), contents)
+				}
+			}
+			files = texts.map { ($0.name, Data($0.contents.utf8)) }
+		}
+		
+		var urls: [URL] = []
+		for file in files {
+			let url = session.appending(path: file.name)
+			try file.data.write(to: url, options: .atomic)
+			urls.append(url)
+		}
+		return urls
 	}
 }

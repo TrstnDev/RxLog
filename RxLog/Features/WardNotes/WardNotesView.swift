@@ -20,9 +20,20 @@ struct WardNotesView: View {
 	@State private var showingFilter = false
 	
 	// Selection
-	@State private var isSelecting = false
+	@State private var mode: SelectionMode = .browsing
 	@State private var selectedNoteIDs = Set<Note.ID>()
 	@State private var pendingDeletion: PendingDeletion?
+	@State private var exportRequest: ExportRequest?
+	
+	/// Any selection-capable mode
+	private var isSelecting: Bool {
+		mode != .browsing
+	}
+	
+	private var isExporting: Bool {
+		if case .exporting = mode { return true }
+		return false
+	}
 	
 	/// Editor routing
 	@State private var editingNote: Note?
@@ -63,6 +74,9 @@ struct WardNotesView: View {
 				.sheet(isPresented: $showingFilter) {
 					NoteFilterSheet(filter: $filter)
 				}
+				.sheet(item: $exportRequest) { request in
+					ExportFormatSheet(request: request)
+				}
 				.alert("Delete Notes?", item: $pendingDeletion) { pending in
 					Button("Delete", role: .destructive) { delete(pending.ids) }
 					Button("Cancel", role: .cancel) {}
@@ -94,42 +108,71 @@ struct WardNotesView: View {
 			}
 			
 			ToolbarItem(placement: .topBarTrailing) {
-				Button("Done") { setSelecting(false) }
-					.fontWeight(.semibold)
+				if isExporting {
+					Button("Cancel") { setMode(.browsing) }
+				} else {
+					Button("Done") { setMode(.browsing) }
+						.fontWeight(.semibold)
+				}
 			}
 			
-			ToolbarItemGroup(placement: .bottomBar) {
-				ShareLink(item: shareText) {
-					Label("Share", systemImage: "square.and.arrow.up")
+			if isExporting {
+				// Single centred action
+				ToolbarItemGroup(placement: .bottomBar) {
+					Spacer()
+					Button {
+						exportRequest = makeExportRequest(visibleNotes: visibleNotes)
+					} label: {
+						Image(systemName: "square.and.arrow.up.fill")
+							.fontWeight(.semibold)
+							.padding(.leading, 15)
+							.padding(.trailing, 1)
+							.foregroundStyle(.white)
+						
+						Text(exportButtonTitle(visibleNotes: visibleNotes))
+							.fontWeight(.semibold)
+							.padding(.leading, 1)
+							.padding(.trailing, 15)
+							.foregroundStyle(.white)
+					}
+					.buttonStyle(.glassProminent)
+					.disabled(visibleNotes.isEmpty)
+					Spacer()
 				}
-				.disabled(selectedNoteIDs.isEmpty)
-				
-				Spacer()
-				
-				Button {
-					favouriteSelected()
-				} label: {
-					Label(
-						allSelectedAreFavourite ? "Unfavourite" : "Favourite",
-						systemImage: allSelectedAreFavourite ? "star.slash" : "star"
-					)
+			} else {
+				ToolbarItemGroup(placement: .bottomBar) {
+					ShareLink(item: shareText) {
+						Label("Share", systemImage: "square.and.arrow.up")
+					}
+					.disabled(selectedNoteIDs.isEmpty)
+					
+					Spacer()
+					
+					Button {
+						favouriteSelected()
+					} label: {
+						Label(
+							allSelectedAreFavourite ? "Unfavourite" : "Favourite",
+							systemImage: allSelectedAreFavourite ? "star.slash" : "star"
+						)
+					}
+					.disabled(selectedNoteIDs.isEmpty)
+					
+					Spacer()
+					
+					Button(role: .destructive) {
+						pendingDeletion = PendingDeletion(ids: selectedNoteIDs)
+					} label: {
+						Label("Delete", systemImage: "trash")
+					}
+					.disabled(selectedNoteIDs.isEmpty)
 				}
-				.disabled(selectedNoteIDs.isEmpty)
-				
-				Spacer()
-				
-				Button(role: .destructive) {
-					pendingDeletion = PendingDeletion(ids: selectedNoteIDs)
-				} label: {
-					Label("Delete", systemImage: "trash")
-				}
-				.disabled(selectedNoteIDs.isEmpty)
 			}
 		} else {
 			ToolbarOverflowMenu {
 				Section {
 					Button("Select", systemImage: "checkmark.circle") {
-						setSelecting(true)
+						setMode(.managing)
 					}
 					.disabled(visibleNotes.isEmpty)
 					
@@ -146,34 +189,44 @@ struct WardNotesView: View {
 				}
 				
 				Section {
-					Picker("Display Style", selection: $displayStyle) {
+					Picker("Display Style", systemImage: "swatchpalette", selection: $displayStyle) {
 						ForEach(NoteDisplayStyle.allCases) { style in
 							Label(style.label, systemImage: style.systemImage).tag(style)
 						}
 					}
-					.pickerStyle(.inline)
+					.pickerStyle(.menu)
 				}
 				
 				Section {
-					Picker("Sort By", selection: $sortOption) {
+					Picker("Sort By", systemImage: "arrow.up.arrow.down", selection: $sortOption) {
 						ForEach(NoteSortOption.allCases) { option in
 							Text(option.label).tag(option)
 						}
 					}
-					.pickerStyle(.inline)
+					.pickerStyle(.menu)
 				}
 				
 				Section {
-					Button("Export", systemImage: "square.and.arrow.up") { }
+					Menu {
+						Button("As Separate Files", systemImage: "doc.on.doc") {
+							setMode(.exporting(.separateFiles))
+						}
+						Button("As One File", systemImage: "doc.text") {
+							setMode(.exporting(.oneFile))
+						}
+					} label: {
+						Label("Export", systemImage: "square.and.arrow.up")
+					}
+					.disabled(visibleNotes.isEmpty)
 				}
 			}
 			
-				// Primary creation action: pinned so it never collapses into overflow
 			ToolbarItem(placement: .topBarPinnedTrailing) {
 				Button {
 					compose()
 				} label: {
-					Image(systemName: "pencil.and.scribble")
+					Image(systemName: "square.and.pencil")
+						.foregroundStyle(.white)
 				}
 				.buttonStyle(.glassProminent)
 				.accessibilityLabel("New Note")
@@ -292,12 +345,32 @@ struct WardNotesView: View {
 	// MARK: - Selection Helpers
 	
 	private var navTitle: String {
-		guard isSelecting else { return "Ward Notes" }
-		return selectedNoteIDs.isEmpty ? "Select Notes" : "\(selectedNoteIDs.count) Selected"
+		switch mode {
+		case .browsing: "Ward Notes"
+		case .managing: selectedNoteIDs.isEmpty ? "Select Notes" : "\(selectedNoteIDs.count) Selected"
+		case .exporting: selectedNoteIDs.isEmpty ? "Export Notes" : "\(selectedNoteIDs.count) Selected"
+		}
 	}
 	
 	private func allSelected(in visibleNotes: [Note]) -> Bool {
 		!visibleNotes.isEmpty && selectedNoteIDs.count == visibleNotes.count
+	}
+	
+	/// `Export All` for empty or complete sections, per export-mode contract
+	private func exportButtonTitle(visibleNotes: [Note]) -> String {
+		if selectedNoteIDs.isEmpty || allSelected(in: visibleNotes) {
+			return "Export All"
+		}
+		return "Export Selected (\(selectedNoteIDs.count))"
+	}
+	
+	/// Resolves the mode's packaging and the button contract into a snapshot
+	private func makeExportRequest(visibleNotes: [Note]) -> ExportRequest? {
+		guard case .exporting(let packaging) = mode else { return nil }
+		let notes = selectedNoteIDs.isEmpty || allSelected(in: visibleNotes)
+			? visibleNotes
+			: visibleNotes.filter { selectedNoteIDs.contains($0.id) }
+		return ExportRequest(packaging: packaging, notes: notes)
 	}
 	
 	private func toggleSelection(_ note: Note) {
@@ -322,10 +395,10 @@ struct WardNotesView: View {
 		}
 	}
 	
-	private func setSelecting(_ on: Bool) {
+	private func setMode(_ new: SelectionMode) {
 		withAnimation(.easeInOut(duration: 0.2)) {
-			isSelecting = on
-			if !on { selectedNoteIDs.removeAll() }
+			mode = new
+			if new == .browsing { selectedNoteIDs.removeAll() }
 		}
 	}
 	
@@ -353,7 +426,7 @@ struct WardNotesView: View {
 		for note in selectedNotes {
 			note.isFavourite = newValue
 		}
-		setSelecting(false)
+		setMode(.browsing)
 	}
 	
 	/// Deletes the captured snapshot of note IDs, then exits selection
@@ -361,7 +434,7 @@ struct WardNotesView: View {
 		for note in allNotes where ids.contains(note.id) {
 			modelContext.delete(note)
 		}
-		setSelecting(false)
+		setMode(.browsing)
 	}
 	
 	// MARK: - Subviews
@@ -384,6 +457,15 @@ struct WardNotesView: View {
 		modelContext.insert(note)
 		editingNote = note
 	}
+}
+
+// MARK: - Selection Mode
+
+/// How the note list is currently being interacted with
+private enum SelectionMode: Equatable {
+	case browsing
+	case managing
+	case exporting(ExportPackaging)
 }
 
 // MARK: - Pending Deletion
